@@ -8,6 +8,9 @@ let loadedResults = 0;
 let bookmarkFilterTerm = "";
 let bookmarkSortOrder = "recent_desc";
 
+// Current drawer view: "bookmarks" or "projects"
+let currentView = "bookmarks";
+
 // Resolved IDs (two-step lookup)
 let resolvedAuthorId = null;
 let resolvedAuthorLabel = "";
@@ -34,6 +37,56 @@ function getGoogleSettings() {
 function setGoogleSettings(apiKey, cx) {
   localStorage.setItem("googleApiKey", apiKey || "");
   localStorage.setItem("googleCx", cx || "");
+}
+
+function getProjects() {
+  return JSON.parse(localStorage.getItem("researchProjects") || "[]");
+}
+
+function saveProjects(data) {
+  localStorage.setItem("researchProjects", JSON.stringify(data));
+}
+
+function createProject(name, description = "") {
+  const projects = getProjects();
+  const newProject = {
+    id: `project_${Date.now()}`,
+    name,
+    description,
+    createdAt: Date.now(),
+    paperIds: []
+  };
+  projects.push(newProject);
+  saveProjects(projects);
+  return newProject;
+}
+
+function deleteProject(projectId) {
+  const projects = getProjects().filter(p => p.id !== projectId);
+  saveProjects(projects);
+  renderCurrentView();
+}
+
+function addPaperToProject(projectId, paperId) {
+  const projects = getProjects().map(p => {
+    if (p.id === projectId && !p.paperIds.includes(paperId)) {
+      return { ...p, paperIds: [...p.paperIds, paperId] };
+    }
+    return p;
+  });
+  saveProjects(projects);
+  renderCurrentView();
+}
+
+function removePaperFromProject(projectId, paperId) {
+  const projects = getProjects().map(p => {
+    if (p.id === projectId) {
+      return { ...p, paperIds: p.paperIds.filter(id => id !== paperId) };
+    }
+    return p;
+  });
+  saveProjects(projects);
+  renderCurrentView();
 }
 
 function sortBookmarks(bookmarks) {
@@ -114,7 +167,7 @@ function removeBookmark(id) {
 
 // ---------- UI INIT ----------
 
-createBookmarkDrawer();
+createDrawer();
 createFloatingButton();
 initGoogleSettings();
 
@@ -768,7 +821,7 @@ async function toggleBookmark(entry, btn) {
 
 function createFloatingButton() {
   const btn = document.createElement("button");
-  btn.innerText = "Bookmarks";
+  btn.innerText = "Library";
 
   btn.style.position = "fixed";
   btn.style.bottom = "20px";
@@ -782,7 +835,7 @@ function createFloatingButton() {
   document.body.appendChild(btn);
 }
 
-function createBookmarkDrawer() {
+function createDrawer() {
   const overlay = document.createElement("div");
   overlay.id = "drawerOverlay";
   overlay.style.position = "fixed";
@@ -794,7 +847,7 @@ function createBookmarkDrawer() {
   document.body.appendChild(overlay);
 
   const drawer = document.createElement("div");
-  drawer.id = "bookmarkDrawer";
+  drawer.id = "drawer";
   drawer.style.position = "fixed";
   drawer.style.right = "-420px";
   drawer.style.top = "0";
@@ -808,12 +861,74 @@ function createBookmarkDrawer() {
   drawer.style.zIndex = "999";
 
   drawer.innerHTML = `
-    <div class="bookmark-drawer-header">
-      <button type="button" class="bookmark-icon-button" onclick="closeDrawer()">✕</button>
-      <h2>Bookmarks</h2>
-      <button type="button" class="bookmark-icon-button" onclick="exportBookmarks()">Export</button>
+    <div class="drawer-header">
+      <button type="button" class="drawer-icon-button" onclick="closeDrawer()">✕</button>
+      <h2 id="drawerTitle">Library</h2>
+      <button type="button" class="drawer-icon-button" id="drawerActionBtn" onclick="exportBookmarks()">Export</button>
     </div>
-    <div class="bookmark-toolbar">
+    <div class="drawer-nav">
+      <button type="button" class="nav-tab active" data-view="bookmarks" onclick="switchView('bookmarks')">Bookmarks</button>
+      <button type="button" class="nav-tab" data-view="projects" onclick="switchView('projects')">Projects</button>
+    </div>
+    <div id="viewContainer"></div>
+  `;
+
+  drawer.onclick = (e) => e.stopPropagation();
+  document.body.appendChild(drawer);
+
+  renderCurrentView();
+}
+
+function openDrawer() {
+  document.getElementById("drawer").style.right = "0px";
+  document.getElementById("drawerOverlay").style.display = "block";
+}
+
+function closeDrawer() {
+  document.getElementById("drawer").style.right = "-420px";
+  document.getElementById("drawerOverlay").style.display = "none";
+}
+
+function switchView(view) {
+  currentView = view;
+
+  // Update nav tabs
+  const tabs = document.querySelectorAll(".nav-tab");
+  tabs.forEach(tab => {
+    if (tab.dataset.view === view) {
+      tab.classList.add("active");
+    } else {
+      tab.classList.remove("active");
+    }
+  });
+
+  renderCurrentView();
+}
+
+function renderCurrentView() {
+  if (currentView === "bookmarks") {
+    renderBookmarksView();
+  } else if (currentView === "projects") {
+    renderProjectsView();
+  }
+}
+
+function renderBookmarksView() {
+  const container = document.getElementById("viewContainer");
+  if (!container) return;
+
+  const drawerTitle = document.getElementById("drawerTitle");
+  if (drawerTitle) drawerTitle.innerText = "Bookmarks";
+
+  const actionBtn = document.getElementById("drawerActionBtn");
+  if (actionBtn) {
+    actionBtn.innerText = "Export";
+    actionBtn.onclick = exportBookmarks;
+    actionBtn.style.display = "block";
+  }
+
+  container.innerHTML = `
+    <div class="view-toolbar">
       <input
         id="bookmarkFilter"
         type="search"
@@ -831,15 +946,12 @@ function createBookmarkDrawer() {
         <option value="citations_asc">Sort: Citations (low → high)</option>
       </select>
     </div>
-    <div id="bookmarkSummary" class="bookmark-summary"></div>
+    <div id="bookmarkSummary" class="view-summary"></div>
     <div id="bookmarkList"></div>
   `;
 
-  drawer.onclick = (e) => e.stopPropagation();
-  document.body.appendChild(drawer);
-
-  const filterInput = drawer.querySelector("#bookmarkFilter");
-  const sortSelect = drawer.querySelector("#bookmarkSort");
+  const filterInput = container.querySelector("#bookmarkFilter");
+  const sortSelect = container.querySelector("#bookmarkSort");
 
   if (filterInput) {
     filterInput.value = bookmarkFilterTerm;
@@ -860,14 +972,148 @@ function createBookmarkDrawer() {
   renderBookmarkList();
 }
 
-function openDrawer() {
-  document.getElementById("bookmarkDrawer").style.right = "0px";
-  document.getElementById("drawerOverlay").style.display = "block";
+function renderProjectsView() {
+  const container = document.getElementById("viewContainer");
+  if (!container) return;
+
+  const drawerTitle = document.getElementById("drawerTitle");
+  if (drawerTitle) drawerTitle.innerText = "Projects";
+
+  const actionBtn = document.getElementById("drawerActionBtn");
+  if (actionBtn) {
+    actionBtn.innerText = "New";
+    actionBtn.onclick = showCreateProjectDialog;
+    actionBtn.style.display = "block";
+  }
+
+  container.innerHTML = `
+    <div id="projectSummary" class="view-summary"></div>
+    <div id="projectList"></div>
+  `;
+
+  renderProjectList();
 }
 
-function closeDrawer() {
-  document.getElementById("bookmarkDrawer").style.right = "-420px";
-  document.getElementById("drawerOverlay").style.display = "none";
+function showCreateProjectDialog() {
+  const name = prompt("Project name:");
+  if (!name || !name.trim()) return;
+
+  const description = prompt("Project description (optional):");
+  createProject(name.trim(), description?.trim() || "");
+  renderProjectList();
+}
+
+function renderProjectList() {
+  const list = document.getElementById("projectList");
+  if (!list) return;
+
+  const projects = getProjects();
+  const summary = document.getElementById("projectSummary");
+
+  if (summary) {
+    summary.innerText = `${projects.length} project${projects.length !== 1 ? 's' : ''}`;
+  }
+
+  list.innerHTML = "";
+
+  if (projects.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "small-note";
+    empty.innerText = "No projects yet. Click 'New' to create one.";
+    list.appendChild(empty);
+    return;
+  }
+
+  projects.forEach((project) => {
+    const item = document.createElement("div");
+    item.className = "project-item";
+
+    const bookmarks = getBookmarks();
+    const projectPapers = bookmarks.filter(b => project.paperIds.includes(b.id));
+
+    const header = document.createElement("div");
+    header.className = "project-item-header";
+
+    const title = document.createElement("div");
+    title.className = "project-item-title";
+    title.innerText = project.name;
+
+    const actions = document.createElement("div");
+    actions.className = "project-item-actions";
+
+    const toggleButton = document.createElement("button");
+    toggleButton.type = "button";
+    toggleButton.className = "project-ghost-button";
+    toggleButton.innerText = "Details";
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "project-danger-button";
+    deleteButton.innerText = "Delete";
+    deleteButton.onclick = (event) => {
+      event.stopPropagation();
+      if (confirm(`Delete project "${project.name}"?`)) {
+        deleteProject(project.id);
+      }
+    };
+
+    actions.appendChild(toggleButton);
+    actions.appendChild(deleteButton);
+
+    header.appendChild(title);
+    header.appendChild(actions);
+
+    const meta = document.createElement("div");
+    meta.className = "project-item-meta";
+    meta.innerText = `${projectPapers.length} paper${projectPapers.length !== 1 ? 's' : ''}`;
+    if (project.description) {
+      meta.innerText += ` • ${project.description}`;
+    }
+
+    const details = document.createElement("div");
+    details.className = "project-item-details";
+    details.hidden = true;
+
+    if (projectPapers.length === 0) {
+      details.innerHTML = `<div class="small-note">No papers in this project yet.</div>`;
+    } else {
+      const papersList = document.createElement("div");
+      papersList.className = "project-papers-list";
+
+      projectPapers.forEach((paper) => {
+        const paperItem = document.createElement("div");
+        paperItem.className = "project-paper-item";
+
+        paperItem.innerHTML = `
+          <div class="project-paper-title">${escapeHtml(paper.title || "Untitled")}</div>
+          <div class="project-paper-meta">${escapeHtml([paper.year, paper.authors].filter(Boolean).join(" • "))}</div>
+        `;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "project-paper-remove";
+        removeBtn.innerText = "Remove";
+        removeBtn.onclick = () => {
+          removePaperFromProject(project.id, paper.id);
+        };
+
+        paperItem.appendChild(removeBtn);
+        papersList.appendChild(paperItem);
+      });
+
+      details.appendChild(papersList);
+    }
+
+    toggleButton.onclick = () => {
+      details.hidden = !details.hidden;
+      toggleButton.innerText = details.hidden ? "Details" : "Hide";
+    };
+
+    item.appendChild(header);
+    item.appendChild(meta);
+    item.appendChild(details);
+    list.appendChild(item);
+  });
 }
 
 function renderBookmarkList() {
