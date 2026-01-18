@@ -217,6 +217,166 @@ function saveGoogleSettings() {
   updateGoogleSettingsStatus("Saved Google settings locally.");
 }
 
+// ---------- OPENAI SETTINGS ----------
+
+function getOpenAISettings() {
+  return {
+    apiKey: localStorage.getItem("openaiApiKey") || "",
+    model: localStorage.getItem("openaiModel") || "gpt-4o-mini",
+    temperature: parseFloat(localStorage.getItem("openaiTemperature") || "0.7"),
+    maxTokens: parseInt(localStorage.getItem("openaiMaxTokens") || "300", 10),
+  };
+}
+
+function setOpenAISettings(apiKey, model, temperature, maxTokens) {
+  localStorage.setItem("openaiApiKey", apiKey);
+  localStorage.setItem("openaiModel", model);
+  localStorage.setItem("openaiTemperature", String(temperature));
+  localStorage.setItem("openaiMaxTokens", String(maxTokens));
+}
+
+async function validateOpenAIKey() {
+  const apiKeyInput = document.getElementById("openaiApiKey");
+  const apiKey = apiKeyInput?.value.trim() || "";
+  const statusDiv = document.getElementById("openaiValidationStatus");
+  const configPanel = document.getElementById("openaiConfigPanel");
+
+  if (!apiKey) {
+    statusDiv.innerText = "Please enter an API key.";
+    statusDiv.style.color = "var(--pico-color-red-500)";
+    configPanel.style.display = "none";
+    return;
+  }
+
+  statusDiv.innerText = "Validating...";
+  statusDiv.style.color = "";
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/models", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (response.ok) {
+      localStorage.setItem("openaiApiKey", apiKey);
+      statusDiv.innerText = "API key is valid! Configuration options revealed below.";
+      statusDiv.style.color = "var(--pico-color-green-500)";
+      configPanel.style.display = "block";
+
+      // Load saved settings
+      const settings = getOpenAISettings();
+      document.getElementById("openaiModel").value = settings.model;
+      document.getElementById("openaiTemperature").value = settings.temperature;
+      document.getElementById("tempValue").textContent = settings.temperature;
+      document.getElementById("openaiMaxTokens").value = settings.maxTokens;
+      document.getElementById("tokensValue").textContent = settings.maxTokens;
+    } else {
+      const error = await response.json().catch(() => ({}));
+      statusDiv.innerText = `Invalid API key: ${error.error?.message || response.statusText}`;
+      statusDiv.style.color = "var(--pico-color-red-500)";
+      configPanel.style.display = "none";
+    }
+  } catch (err) {
+    statusDiv.innerText = `Validation error: ${err.message}`;
+    statusDiv.style.color = "var(--pico-color-red-500)";
+    configPanel.style.display = "none";
+  }
+}
+
+function saveOpenAISettings() {
+  const model = document.getElementById("openaiModel")?.value || "gpt-4o-mini";
+  const temperature = parseFloat(
+    document.getElementById("openaiTemperature")?.value || "0.7"
+  );
+  const maxTokens = parseInt(
+    document.getElementById("openaiMaxTokens")?.value || "300",
+    10
+  );
+  const apiKey = getOpenAISettings().apiKey;
+
+  setOpenAISettings(apiKey, model, temperature, maxTokens);
+
+  const statusDiv = document.getElementById("openaiValidationStatus");
+  const originalText = statusDiv.innerText;
+  statusDiv.innerText = "ChatGPT settings saved!";
+  statusDiv.style.color = "var(--pico-color-green-500)";
+
+  setTimeout(() => {
+    statusDiv.innerText = originalText;
+  }, 2000);
+}
+
+async function generateResearchNote(bookmarkId) {
+  const bookmarks = getBookmarks();
+  const bookmark = bookmarks.find((b) => b.id === bookmarkId);
+  if (!bookmark) return;
+
+  const settings = getOpenAISettings();
+  if (!settings.apiKey) {
+    alert("Please add and validate your OpenAI API key in Advanced settings.");
+    return;
+  }
+
+  const statusElement = document.getElementById(`chatty-status-${bookmarkId}`);
+  if (statusElement) {
+    statusElement.innerText = "Chatty is thinking...";
+  }
+
+  const prompt = `You are a research assistant. Analyze the following academic paper and provide a single well-written paragraph that explains:
+1. The abstraction or theoretical framework
+2. The key findings
+3. The conclusions
+
+Keep it concise and academic in tone.
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+Abstract: ${bookmark.abstract || "No abstract available"}`;
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: settings.model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: settings.temperature,
+        max_tokens: settings.maxTokens,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error?.message || response.statusText);
+    }
+
+    const data = await response.json();
+    const aiSummary = data.choices?.[0]?.message?.content || "";
+
+    // Update bookmark with AI summary
+    const updatedBookmarks = bookmarks.map((b) =>
+      b.id === bookmarkId ? { ...b, aiSummary } : b
+    );
+    saveBookmarks(updatedBookmarks);
+
+    // Re-render to show the summary
+    renderBookmarksView();
+  } catch (err) {
+    if (statusElement) {
+      statusElement.innerText = `Error: ${err.message}`;
+      statusElement.style.color = "var(--pico-color-red-500)";
+    } else {
+      alert(`Error generating note: ${err.message}`);
+    }
+  }
+}
+
 // ---------- OPENALEX HELPERS ----------
 
 function normalizeOpenAlexId(maybeUrl) {
@@ -1158,6 +1318,16 @@ function renderBookmarkList() {
     const actions = document.createElement("div");
     actions.className = "bookmark-item-actions";
 
+    const generateButton = document.createElement("button");
+    generateButton.type = "button";
+    generateButton.className = "bookmark-ghost-button";
+    generateButton.innerText = "🤖 Generate";
+    generateButton.title = "Generate AI research note with Chatty";
+    generateButton.onclick = (event) => {
+      event.stopPropagation();
+      generateResearchNote(b.id);
+    };
+
     const toggleButton = document.createElement("button");
     toggleButton.type = "button";
     toggleButton.className = "bookmark-ghost-button";
@@ -1172,6 +1342,7 @@ function renderBookmarkList() {
       removeBookmark(b.id);
     };
 
+    actions.appendChild(generateButton);
     actions.appendChild(toggleButton);
     actions.appendChild(deleteButton);
 
@@ -1207,6 +1378,17 @@ function renderBookmarkList() {
       )}).</div>`;
     }
 
+    const aiSummarySection = b.aiSummary
+      ? `<div class="chatty-summary">
+           <div class="chatty-header">
+             <span class="chatty-name">🤖 Chatty</span>
+           </div>
+           <div class="chatty-content" id="chatty-status-${b.id}">${escapeHtml(
+           b.aiSummary
+         )}</div>
+         </div>`
+      : "";
+
     details.innerHTML = `
       <div class="bookmark-item-info">
         <small>${b.year || "Unknown"}${
@@ -1222,6 +1404,7 @@ function renderBookmarkList() {
       </div>
       ${renderSourcePills(googleLinks)}
       ${sourceSection}
+      ${aiSummarySection}
       <div class="bookmark-note">
         <label for="bookmark-note-${b.id}">Note</label>
         <textarea id="bookmark-note-${b.id}" placeholder="Add a note..."></textarea>
@@ -1260,4 +1443,45 @@ function exportBookmarks() {
   a.click();
 
   URL.revokeObjectURL(url);
+}
+
+// ---------- INITIALIZATION ----------
+
+function initializeSettings() {
+  // Load Google settings
+  const googleSettings = getGoogleSettings();
+  const googleApiKeyInput = document.getElementById("googleApiKey");
+  const googleCxInput = document.getElementById("googleCx");
+  if (googleApiKeyInput) googleApiKeyInput.value = googleSettings.apiKey || "";
+  if (googleCxInput) googleCxInput.value = googleSettings.cx || "";
+  updateGoogleSettingsStatus();
+
+  // Load OpenAI settings
+  const openaiSettings = getOpenAISettings();
+  const openaiApiKeyInput = document.getElementById("openaiApiKey");
+  if (openaiApiKeyInput && openaiSettings.apiKey) {
+    openaiApiKeyInput.value = openaiSettings.apiKey;
+
+    // If there's a saved API key, show the config panel
+    const configPanel = document.getElementById("openaiConfigPanel");
+    const statusDiv = document.getElementById("openaiValidationStatus");
+    if (configPanel && statusDiv) {
+      statusDiv.innerText = "API key loaded from storage. Click 'Validate Key' to verify.";
+      configPanel.style.display = "block";
+
+      // Load saved config values
+      document.getElementById("openaiModel").value = openaiSettings.model;
+      document.getElementById("openaiTemperature").value = openaiSettings.temperature;
+      document.getElementById("tempValue").textContent = openaiSettings.temperature;
+      document.getElementById("openaiMaxTokens").value = openaiSettings.maxTokens;
+      document.getElementById("tokensValue").textContent = openaiSettings.maxTokens;
+    }
+  }
+}
+
+// Initialize on page load
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeSettings);
+} else {
+  initializeSettings();
 }
