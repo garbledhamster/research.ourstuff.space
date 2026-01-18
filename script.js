@@ -22,16 +22,67 @@ function saveBookmarks(data) {
   localStorage.setItem("researchBookmarks", JSON.stringify(data));
 }
 
+function getGoogleSettings() {
+  return {
+    apiKey: localStorage.getItem("googleApiKey") || "",
+    cx: localStorage.getItem("googleCx") || ""
+  };
+}
+
+function setGoogleSettings(apiKey, cx) {
+  localStorage.setItem("googleApiKey", apiKey || "");
+  localStorage.setItem("googleCx", cx || "");
+}
+
 // ---------- UI INIT ----------
 
 createBookmarkDrawer();
 createFloatingButton();
+initGoogleSettings();
 
 // ---------- ADVANCED TOGGLE ----------
 
 function toggleAdvanced() {
   const panel = document.getElementById("advancedPanel");
   panel.style.display = panel.style.display === "block" ? "none" : "block";
+}
+
+function initGoogleSettings() {
+  const { apiKey, cx } = getGoogleSettings();
+  const keyInput = document.getElementById("googleApiKey");
+  const cxInput = document.getElementById("googleCx");
+
+  if (keyInput) keyInput.value = apiKey;
+  if (cxInput) cxInput.value = cx;
+
+  updateGoogleSettingsStatus();
+}
+
+function updateGoogleSettingsStatus(message) {
+  const status = document.getElementById("googleSettingsStatus");
+  if (!status) return;
+
+  if (message) {
+    status.innerText = message;
+    return;
+  }
+
+  const { apiKey, cx } = getGoogleSettings();
+  if (!apiKey || !cx) {
+    status.innerText =
+      "Add your API key + Search Engine ID to enable PDF lookup for bookmarks.";
+    return;
+  }
+
+  status.innerText = "Google settings saved. PDF lookup is enabled for bookmarks.";
+}
+
+function saveGoogleSettings() {
+  const apiKey = document.getElementById("googleApiKey")?.value.trim() || "";
+  const cx = document.getElementById("googleCx")?.value.trim() || "";
+
+  setGoogleSettings(apiKey, cx);
+  updateGoogleSettingsStatus("Saved Google settings locally.");
 }
 
 // ---------- OPENALEX HELPERS ----------
@@ -421,6 +472,71 @@ function renderWorkCard(paper) {
   loadedResults++;
 }
 
+function escapeHtml(value) {
+  return String(value || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function fetchGooglePdfLinks(entry) {
+  const { apiKey, cx } = getGoogleSettings();
+  if (!apiKey || !cx) {
+    return { links: [], status: "missing_settings" };
+  }
+
+  const title = entry.title || "";
+  const firstAuthor = (entry.authors || "").split(",")[0]?.trim();
+
+  const queryParts = [];
+  if (title) queryParts.push(`"${title}"`);
+  if (firstAuthor) queryParts.push(`"${firstAuthor}"`);
+  queryParts.push("filetype:pdf");
+
+  const url = new URL("https://www.googleapis.com/customsearch/v1");
+  url.searchParams.set("key", apiKey);
+  url.searchParams.set("cx", cx);
+  url.searchParams.set("q", queryParts.join(" "));
+  url.searchParams.set("num", "10");
+  url.searchParams.set("fileType", "pdf");
+
+  try {
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      return { links: [], status: `error_${res.status}` };
+    }
+
+    const data = await res.json();
+    const items = data?.items || [];
+    const unique = new Set();
+
+    items.forEach((item) => {
+      const link = item?.link || "";
+      if (link.toLowerCase().includes(".pdf")) {
+        unique.add(link);
+      }
+    });
+
+    return { links: Array.from(unique).slice(0, 5), status: "ok" };
+  } catch (error) {
+    console.error(error);
+    return { links: [], status: "error_network" };
+  }
+}
+
+function renderPdfPills(links) {
+  if (!links || links.length === 0) return "";
+  return `
+    <div class="pdf-pills">
+      ${links
+        .map(
+          (link, index) =>
+            `<a class="pdf-pill" href="${link}" target="_blank" rel="noopener">PDF ${
+              index + 1
+            }</a>`
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 // ---------- LOAD MORE BUTTON ----------
 
 function ensureLoadMore() {
@@ -444,7 +560,7 @@ function removeLoadMore() {
 
 // ---------- BOOKMARKS ----------
 
-function toggleBookmark(entry, btn) {
+async function toggleBookmark(entry, btn) {
   let bookmarks = getBookmarks();
   const exists = bookmarks.find((b) => b.id === entry.id);
 
@@ -452,13 +568,33 @@ function toggleBookmark(entry, btn) {
     bookmarks = bookmarks.filter((b) => b.id !== entry.id);
     btn.style.color = "";
   } else {
-    bookmarks.push(entry);
+    const pendingEntry = {
+      ...entry,
+      pdfLinks: [],
+      pdfLinksStatus: "pending"
+    };
+    bookmarks.push(pendingEntry);
     btn.style.color = "blue";
     btn.style.opacity = "1";
   }
 
   saveBookmarks(bookmarks);
   renderBookmarkList();
+
+  if (!exists) {
+    const { links, status } = await fetchGooglePdfLinks(entry);
+    const updated = getBookmarks().map((b) =>
+      b.id === entry.id
+        ? {
+            ...b,
+            pdfLinks: links,
+            pdfLinksStatus: status
+          }
+        : b
+    );
+    saveBookmarks(updated);
+    renderBookmarkList();
+  }
 }
 
 // ---------- FLOATING BUTTON + DRAWER ----------
@@ -551,6 +687,19 @@ function renderBookmarkList() {
     item.innerHTML = `<b>${b.title}</b>`;
 
     item.onclick = () => {
+      const pdfLinks = Array.isArray(b.pdfLinks) ? b.pdfLinks : [];
+      let pdfSection = "";
+
+      if (b.pdfLinksStatus === "pending") {
+        pdfSection = `<div class="small-note">Finding PDF links...</div>`;
+      } else if (b.pdfLinksStatus === "missing_settings") {
+        pdfSection = `<div class="small-note">Add your Google API key + cx to find PDFs.</div>`;
+      } else if (b.pdfLinksStatus && b.pdfLinksStatus !== "ok") {
+        pdfSection = `<div class="small-note">Could not load PDF links (${escapeHtml(
+          b.pdfLinksStatus
+        )}).</div>`;
+      }
+
       item.innerHTML = `
         <b>${b.title}</b><br>
         <small>${b.year}${
@@ -563,7 +712,9 @@ function renderBookmarkList() {
             : ""
         }
         ${b.doi ? `<small>DOI: ${b.doi}</small><br>` : ""}
-        <p>${(b.abstract || "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+        ${renderPdfPills(pdfLinks)}
+        ${pdfSection}
+        <p>${escapeHtml(b.abstract || "")}</p>
       `;
     };
 

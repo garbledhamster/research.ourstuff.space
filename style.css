@@ -104,3 +104,27 @@ body {
   color: #555;
   margin: 3px 0;
 }
+
+.pdf-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.pdf-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e8f0fe;
+  color: #0b57d0;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid #c6dafc;
+}
+
+.pdf-pill:hover {
+  background: #d2e3fc;
+}
