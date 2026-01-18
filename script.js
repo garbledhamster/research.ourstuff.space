@@ -567,10 +567,17 @@ function extractHostname(link) {
   }
 }
 
-function buildGoogleQueries(title, firstAuthor) {
+function normalizeDoiValue(doi) {
+  if (!doi) return "";
+  return String(doi).replace(/^https?:\/\/doi\.org\//i, "").trim();
+}
+
+function buildGoogleQueries(title, firstAuthor, doi) {
   const baseParts = [];
   if (title) baseParts.push(`"${title}"`);
   if (firstAuthor) baseParts.push(`"${firstAuthor}"`);
+
+  const normalizedDoi = normalizeDoiValue(doi);
 
   return [
     {
@@ -582,6 +589,11 @@ function buildGoogleQueries(title, firstAuthor) {
       type: "citations",
       q: baseParts.join(" ").trim(),
       orTerms: "cited references bibliography"
+    },
+    {
+      type: "doi",
+      q: normalizedDoi,
+      exactTerms: normalizedDoi
     }
   ].filter((query) => query.q);
 }
@@ -626,7 +638,7 @@ async function fetchGoogleSourceLinks(entry) {
 
   const title = entry.title || "";
   const firstAuthor = (entry.authors || "").split(",")[0]?.trim();
-  const queries = buildGoogleQueries(title, firstAuthor);
+  const queries = buildGoogleQueries(title, firstAuthor, entry.doi);
 
   if (queries.length === 0) {
     return { links: [], status: "missing_query" };
