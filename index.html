@@ -4,87 +4,118 @@
   <meta charset="UTF-8" />
   <title>Research Loader</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/open-props/normalize.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/open-props/open-props.min.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+  />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="assets/site.css" />
 </head>
 
 <body>
-  <h1 class="title">📚 Research Loader</h1>
+  <main class="container">
+    <header>
+      <h1 class="title animate__animated animate__fadeInDown">📚 Research Loader</h1>
+    </header>
 
-  <!-- MAIN SEARCH -->
-  <div class="search-panel">
-    <input
-      id="query"
-      type="text"
-      placeholder="Search Plato, Ackoff, DIKW..."
-      onkeydown="if(event.key==='Enter') search()"
-    />
+    <!-- MAIN SEARCH -->
+    <section class="search-section">
+      <div class="search-panel">
+        <input
+          id="query"
+          type="text"
+          placeholder="Search Plato, Ackoff, DIKW..."
+          onkeydown="if(event.key==='Enter') search()"
+        />
 
-    <select id="sortOrder" title="Sort results">
-      <option value="">Sort: Relevance</option>
-      <option value="date_desc">Date: Newest → Oldest</option>
-      <option value="date_asc">Date: Oldest → Newest</option>
-      <option value="cite_desc">Citations: High → Low</option>
-      <option value="cite_asc">Citations: Low → High</option>
-    </select>
+        <select id="sortOrder" title="Sort results">
+          <option value="">Sort: Relevance</option>
+          <option value="date_desc">Date: Newest → Oldest</option>
+          <option value="date_asc">Date: Oldest → Newest</option>
+          <option value="cite_desc">Citations: High → Low</option>
+          <option value="cite_asc">Citations: Low → High</option>
+        </select>
 
-    <button type="button" onclick="toggleAdvanced()">Advanced ▾</button>
-    <button type="button" onclick="search()">Search</button>
-  </div>
-
-  <!-- ADVANCED SEARCH -->
-  <div id="advancedPanel" class="advanced-panel">
-    <div class="adv-grid">
-      <input id="exactPhrase" type="text" placeholder="Exact phrase (we add quotes for you)" />
-
-      <input id="titleTerm" type="text" placeholder="Title contains (filter: title.search)" />
-      <input id="abstractTerm" type="text" placeholder="Abstract contains (filter: abstract.search)" />
-
-      <input id="authorName" type="text" placeholder="Author name (lookup → author.id filter)" />
-      <input id="sourceName" type="text" placeholder="Source/Journal name (lookup → source.id filter)" />
-
-      <input id="fromYear" type="number" placeholder="From year (e.g., 1950)" />
-      <input id="toYear" type="number" placeholder="To year (e.g., 2026)" />
-    </div>
-
-    <div class="adv-section">
-      <div class="adv-section-title">
-        Google Source Finder (Bookmarks)
-        <span class="help-links">
-          <a
-            href="https://developers.google.com/custom-search/v1/introduction"
-            target="_blank"
-            rel="noopener"
-            title="How to get an API key + set up Programmable Search Engine"
-          >Help</a>
-          <span class="dot">•</span>
-          <a
-            href="https://support.google.com/programmable-search/answer/12499034?hl=en"
-            target="_blank"
-            rel="noopener"
-            title="How to find your Search Engine ID (cx)"
-          >Find cx</a>
-        </span>
+        <button type="button" onclick="toggleAdvanced()">Advanced ▾</button>
+        <button type="button" onclick="search()">Search</button>
       </div>
+    </section>
 
-      <div class="adv-grid">
-        <input id="googleApiKey" type="password" placeholder="Google Custom Search API key (stored locally)" />
-        <input id="googleCx" type="text" placeholder="Search Engine ID (cx) (stored locally)" />
-        <button type="button" onclick="saveGoogleSettings()">Save Google Settings</button>
+    <!-- ADVANCED SEARCH -->
+    <section class="advanced-section">
+      <div id="advancedPanel" class="advanced-panel">
+        <div class="adv-grid">
+          <input id="exactPhrase" type="text" placeholder="Exact phrase (we add quotes for you)" />
+
+          <input id="titleTerm" type="text" placeholder="Title contains (filter: title.search)" />
+          <input
+            id="abstractTerm"
+            type="text"
+            placeholder="Abstract contains (filter: abstract.search)"
+          />
+
+          <input id="authorName" type="text" placeholder="Author name (lookup → author.id filter)" />
+          <input
+            id="sourceName"
+            type="text"
+            placeholder="Source/Journal name (lookup → source.id filter)"
+          />
+
+          <input id="fromYear" type="number" placeholder="From year (e.g., 1950)" />
+          <input id="toYear" type="number" placeholder="To year (e.g., 2026)" />
+        </div>
+
+        <div class="adv-section">
+          <div class="adv-section-title">
+            Google Source Finder (Bookmarks)
+            <span class="help-links">
+              <a
+                href="https://developers.google.com/custom-search/v1/introduction"
+                target="_blank"
+                rel="noopener"
+                title="How to get an API key + set up Programmable Search Engine"
+              >Help</a>
+              <span class="dot">•</span>
+              <a
+                href="https://support.google.com/programmable-search/answer/12499034?hl=en"
+                target="_blank"
+                rel="noopener"
+                title="How to find your Search Engine ID (cx)"
+              >Find cx</a>
+            </span>
+          </div>
+
+          <div class="adv-grid">
+            <input
+              id="googleApiKey"
+              type="password"
+              placeholder="Google Custom Search API key (stored locally)"
+            />
+            <input id="googleCx" type="text" placeholder="Search Engine ID (cx) (stored locally)" />
+            <button type="button" onclick="saveGoogleSettings()">Save Google Settings</button>
+          </div>
+
+          <div id="googleSettingsStatus" class="adv-note">
+            Tip: Restrict your API key by HTTP referrer to your GitHub Pages domain.
+          </div>
+        </div>
+
+        <div class="adv-note">
+          Author/Source filters use OpenAlex lookups (name → OpenAlex ID → works filter).
+          In bookmarks, the Google Source Finder uses your saved Google key + cx to try to locate
+          essay text first, then related citations.
+        </div>
       </div>
+    </section>
 
-      <div id="googleSettingsStatus" class="adv-note">
-        Tip: Restrict your API key by HTTP referrer to your GitHub Pages domain.
-      </div>
-    </div>
-
-    <div class="adv-note">
-      Author/Source filters use OpenAlex lookups (name → OpenAlex ID → works filter).
-      In bookmarks, the Google Source Finder uses your saved Google key + cx to try to locate essay text first, then related citations.
-    </div>
-  </div>
-
-  <!-- RESULTS -->
-  <div id="results"></div>
+    <!-- RESULTS -->
+    <section class="results-section">
+      <div id="results"></div>
+    </section>
+  </main>
 
   <script src="script.js"></script>
 </body>
