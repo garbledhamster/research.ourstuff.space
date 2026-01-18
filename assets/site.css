@@ -1,10 +1,19 @@
 :root {
   color-scheme: light dark;
+  --brand: #4f46e5;
+  --brand-strong: #4338ca;
+  --brand-soft: color-mix(in srgb, var(--brand), white 78%);
+  --surface-1: #ffffff;
+  --surface-2: #eef2ff;
+  --text-1: #0f172a;
+  --text-2: #475569;
+  --border-subtle: color-mix(in srgb, var(--text-1), transparent 88%);
 }
 
 body {
-  background: var(--surface-2);
+  background: radial-gradient(circle at top, #ffffff 0%, #eef2ff 45%, #e2e8f0 100%);
   color: var(--text-1);
+  line-height: 1.6;
 }
 
 main.container {
@@ -13,6 +22,7 @@ main.container {
   max-inline-size: var(--size-content-3);
   margin-inline: auto;
   padding-block: var(--size-7);
+  padding-inline: var(--size-5);
 }
 
 header {
@@ -26,11 +36,44 @@ header {
   border-radius: var(--radius-3);
   box-shadow: var(--shadow-2);
   padding: var(--size-5);
+  border: 1px solid var(--border-subtle);
 }
 
 .search-panel,
 .adv-grid {
   gap: var(--size-3);
+}
+
+.search-panel button,
+.search-panel select,
+.search-panel input,
+.advanced-panel button,
+.advanced-panel select,
+.advanced-panel input {
+  border-radius: var(--radius-2);
+  border: 1px solid color-mix(in srgb, var(--text-1), transparent 85%);
+  background: #fff;
+}
+
+.search-panel button,
+.advanced-panel button {
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.search-panel button:focus-visible,
+.advanced-panel button:focus-visible {
+  box-shadow: 0 0 0 var(--size-1) color-mix(in srgb, var(--brand), transparent 60%);
+}
+
+.search-panel input:focus,
+.search-panel select:focus,
+.advanced-panel input:focus,
+.advanced-panel select:focus {
+  border-color: color-mix(in srgb, var(--brand), transparent 40%);
+  box-shadow: 0 0 0 var(--size-1) color-mix(in srgb, var(--brand), transparent 70%);
 }
 
 a,
@@ -54,6 +97,47 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible {
   box-shadow: 0 0 0 var(--size-1) color-mix(in srgb, var(--indigo-5), transparent 60%);
+}
+
+.title {
+  color: var(--text-1);
+}
+
+.adv-note,
+.meta,
+.small-note {
+  color: var(--text-2);
+}
+
+.adv-section {
+  background: var(--brand-soft);
+  border-radius: var(--radius-2);
+  padding: var(--size-4);
+  border: 1px solid var(--border-subtle);
+}
+
+.help-links a {
+  color: var(--brand-strong);
+}
+
+.help-links .dot {
+  color: var(--text-2);
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-1);
+}
+
+.pdf-pill {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  border: 1px solid color-mix(in srgb, var(--brand), transparent 60%);
+}
+
+.pdf-pill:hover {
+  background: color-mix(in srgb, var(--brand), white 70%);
 }
 
 @media (prefers-reduced-motion: reduce) {
