@@ -1,17 +1,54 @@
 :root {
   color-scheme: light dark;
+
+  /* Brand colors */
   --brand: #4f46e5;
   --brand-strong: #4338ca;
   --brand-soft: color-mix(in srgb, var(--brand), white 78%);
+  --brand-border: color-mix(in srgb, var(--brand), transparent 45%);
+
+  /* Surface colors */
   --surface-1: #ffffff;
   --surface-2: #eef2ff;
+  --surface-3: #fafafa;
+  --surface-overlay: rgba(0, 0, 0, 0.3);
+
+  /* Text colors */
   --text-1: #0f172a;
   --text-2: #475569;
+  --text-3: #64748b;
+  --text-4: #94a3b8;
+
+  /* Border colors */
   --border-subtle: color-mix(in srgb, var(--text-1), transparent 88%);
+  --border-light: #e5e5e5;
+  --border-medium: #d0d7de;
+
+  /* Shadow colors */
+  --shadow-color: rgba(0, 0, 0, 0.2);
+
+  /* State colors - Success */
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --success-border: #a7f3d0;
+
+  /* State colors - Danger */
+  --danger: #dc2626;
+  --danger-strong: #b42318;
+  --danger-light: #fff5f5;
+  --danger-border: #fecaca;
+
+  /* Accent - Bookmarked */
+  --accent-bookmarked: #3b82f6;
 }
 
 body {
-  background: radial-gradient(circle at top, #ffffff 0%, #eef2ff 45%, #e2e8f0 100%);
+  background: radial-gradient(
+    circle at top,
+    var(--surface-1) 0%,
+    var(--surface-2) 45%,
+    color-mix(in srgb, var(--surface-2), var(--text-4) 15%) 100%
+  );
   color: var(--text-1);
   line-height: 1.6;
 }
@@ -52,14 +89,14 @@ header {
 .advanced-panel input {
   border-radius: var(--radius-2);
   border: 1px solid color-mix(in srgb, var(--text-1), transparent 85%);
-  background: #fff;
+  background: var(--surface-1);
 }
 
 .search-panel button,
 .advanced-panel button {
   background: var(--brand-soft);
   color: var(--text-1);
-  border-color: color-mix(in srgb, var(--brand), transparent 45%);
+  border-color: var(--brand-border);
   font-weight: 600;
 }
 
@@ -131,7 +168,7 @@ select:focus-visible {
 }
 
 .card {
-  background: #fff;
+  background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-1);
 }
@@ -144,6 +181,55 @@ select:focus-visible {
 
 .pdf-pill:hover {
   background: color-mix(in srgb, var(--brand), white 70%);
+}
+
+/* Form elements consistency */
+input,
+select,
+textarea {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-1);
+  border-radius: var(--radius-2);
+  transition: border-color 150ms var(--ease-3), box-shadow 150ms var(--ease-3);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand-border);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand), transparent 70%);
+}
+
+button {
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 150ms var(--ease-3), border-color 150ms var(--ease-3),
+              opacity 150ms var(--ease-3), transform 150ms var(--ease-3);
+}
+
+button:hover {
+  opacity: 0.95;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Bookmark-specific button styles */
+.bookmark-icon-button:hover {
+  background: color-mix(in srgb, var(--surface-2), var(--brand) 10%);
+}
+
+.bookmark-ghost-button:hover {
+  background: var(--surface-3);
+  border-color: var(--text-3);
+}
+
+.bookmark-danger-button:hover {
+  background: color-mix(in srgb, var(--danger-light), var(--danger) 10%);
+  border-color: var(--danger);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -502,7 +502,7 @@ function renderWorkCard(paper) {
 
   const bookmarks = getBookmarks();
   if (bookmarks.find((b) => b.id === id)) {
-    bookmarkBtn.style.color = "blue";
+    bookmarkBtn.style.color = "var(--accent-bookmarked)";
     bookmarkBtn.style.opacity = "1";
   }
 
@@ -529,7 +529,7 @@ function renderWorkCard(paper) {
   card.innerHTML = `
     <h3>${title}</h3>
     <div class="meta"><b>Year:</b> ${year}${
-    pubDate ? ` <span style="color:#888">(${pubDate})</span>` : ""
+    pubDate ? ` <span style="color:var(--text-3)">(${pubDate})</span>` : ""
   }</div>
     <div class="meta"><b>Authors:</b> ${authors}</div>
     ${
@@ -741,7 +741,7 @@ async function toggleBookmark(entry, btn) {
       note: ""
     };
     bookmarks.push(pendingEntry);
-    btn.style.color = "blue";
+    btn.style.color = "var(--accent-bookmarked)";
     btn.style.opacity = "1";
   }
 
@@ -787,7 +787,7 @@ function createBookmarkDrawer() {
   overlay.id = "drawerOverlay";
   overlay.style.position = "fixed";
   overlay.style.inset = "0";
-  overlay.style.background = "rgba(0,0,0,0.3)";
+  overlay.style.background = "var(--surface-overlay)";
   overlay.style.display = "none";
   overlay.style.zIndex = "998";
   overlay.onclick = closeDrawer;
@@ -800,8 +800,8 @@ function createBookmarkDrawer() {
   drawer.style.top = "0";
   drawer.style.width = "400px";
   drawer.style.height = "100%";
-  drawer.style.background = "#fff";
-  drawer.style.boxShadow = "-2px 0 8px rgba(0,0,0,.2)";
+  drawer.style.background = "var(--surface-1)";
+  drawer.style.boxShadow = "-2px 0 8px var(--shadow-color)";
   drawer.style.padding = "15px";
   drawer.style.overflowY = "auto";
   drawer.style.transition = "0.3s";
