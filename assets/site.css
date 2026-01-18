@@ -57,10 +57,16 @@ header {
 
 .search-panel button,
 .advanced-panel button {
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-  color: #fff;
-  border-color: transparent;
+  background: var(--brand-soft);
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--brand), transparent 45%);
   font-weight: 600;
+}
+
+.search-panel button:hover,
+.advanced-panel button:hover {
+  background: color-mix(in srgb, var(--brand), white 70%);
+  color: var(--text-1);
 }
 
 .search-panel button:focus-visible,
