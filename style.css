@@ -110,7 +110,7 @@ body {
   text-decoration: none;
 }
 
-.bookmark-drawer-header {
+.drawer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -118,34 +118,71 @@ body {
   margin-bottom: 8px;
 }
 
-.bookmark-drawer-header h2 {
+.drawer-header h2 {
   margin: 0;
   font-size: 20px;
 }
 
-.bookmark-icon-button {
+.drawer-icon-button {
   padding: 6px 12px;
   border-radius: 999px;
   background: #eef2ff;
   border: 1px solid #d7defc;
   font-size: 12px;
+  cursor: pointer;
 }
 
-.bookmark-toolbar {
+.drawer-icon-button:hover {
+  background: #dfe6ff;
+}
+
+.drawer-nav {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 4px;
+}
+
+.nav-tab {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.nav-tab:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.nav-tab.active {
+  background: #eef2ff;
+  color: #3b5bdb;
+  border-bottom: 2px solid #3b5bdb;
+}
+
+.view-toolbar {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin: 8px 0 10px;
 }
 
-.bookmark-toolbar input,
-.bookmark-toolbar select {
+.view-toolbar input,
+.view-toolbar select {
   width: 100%;
   padding: 8px 10px;
   font-size: 13px;
 }
 
-.bookmark-summary {
+.view-summary {
   font-size: 12px;
   color: #555;
   margin-bottom: 10px;
@@ -231,4 +268,98 @@ body {
   padding: 8px;
   font-size: 13px;
   resize: vertical;
+}
+
+/* Project items */
+.project-item {
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fafafa;
+  margin-bottom: 10px;
+}
+
+.project-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.project-item-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.project-item-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.project-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-ghost-button,
+.project-danger-button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid #d0d7de;
+  background: #fff;
+  cursor: pointer;
+}
+
+.project-danger-button {
+  color: #b42318;
+  border-color: #f4b4b4;
+  background: #fff5f5;
+}
+
+.project-item-details {
+  margin-top: 8px;
+}
+
+.project-papers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-paper-item {
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+.project-paper-title {
+  font-weight: 600;
+  font-size: 13px;
+  padding-right: 60px;
+}
+
+.project-paper-meta {
+  font-size: 11px;
+  color: #666;
+}
+
+.project-paper-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 999px;
+  border: 1px solid #f4b4b4;
+  background: #fff5f5;
+  color: #b42318;
+  cursor: pointer;
 }
