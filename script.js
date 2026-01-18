@@ -5,6 +5,8 @@ let isLoading = false;
 
 let totalResults = 0;
 let loadedResults = 0;
+let bookmarkFilterTerm = "";
+let bookmarkSortOrder = "recent_desc";
 
 // Resolved IDs (two-step lookup)
 let resolvedAuthorId = null;
@@ -32,6 +34,82 @@ function getGoogleSettings() {
 function setGoogleSettings(apiKey, cx) {
   localStorage.setItem("googleApiKey", apiKey || "");
   localStorage.setItem("googleCx", cx || "");
+}
+
+function sortBookmarks(bookmarks) {
+  const items = [...bookmarks];
+  const getYear = (entry) => {
+    const year = parseInt(entry.year, 10);
+    return Number.isFinite(year) ? year : 0;
+  };
+
+  const getCitations = (entry) =>
+    typeof entry.cited_by_count === "number" ? entry.cited_by_count : -1;
+
+  const compareText = (a, b) =>
+    String(a || "").localeCompare(String(b || ""), undefined, {
+      sensitivity: "base"
+    });
+
+  const compare = (a, b, dir = 1) => (a > b ? dir : a < b ? -dir : 0);
+
+  switch (bookmarkSortOrder) {
+    case "recent_asc":
+      return items.sort((a, b) =>
+        compare(a.createdAt || 0, b.createdAt || 0, 1)
+      );
+    case "title_asc":
+      return items.sort((a, b) => compareText(a.title, b.title));
+    case "title_desc":
+      return items.sort((a, b) => compareText(b.title, a.title));
+    case "year_asc":
+      return items.sort((a, b) => compare(getYear(a), getYear(b), 1));
+    case "year_desc":
+      return items.sort((a, b) => compare(getYear(a), getYear(b), -1));
+    case "citations_asc":
+      return items.sort((a, b) => compare(getCitations(a), getCitations(b), 1));
+    case "citations_desc":
+      return items.sort((a, b) => compare(getCitations(a), getCitations(b), -1));
+    case "recent_desc":
+    default:
+      return items.sort((a, b) =>
+        compare(a.createdAt || 0, b.createdAt || 0, -1)
+      );
+  }
+}
+
+function filterBookmarks(bookmarks) {
+  const term = bookmarkFilterTerm.trim().toLowerCase();
+  if (!term) return bookmarks;
+
+  return bookmarks.filter((entry) => {
+    const haystack = [
+      entry.title,
+      entry.authors,
+      entry.year,
+      entry.publication_date,
+      entry.doi,
+      entry.note
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(term);
+  });
+}
+
+function updateBookmarkNote(id, note) {
+  const bookmarks = getBookmarks().map((entry) =>
+    entry.id === id ? { ...entry, note } : entry
+  );
+  saveBookmarks(bookmarks);
+}
+
+function removeBookmark(id) {
+  const bookmarks = getBookmarks().filter((entry) => entry.id !== id);
+  saveBookmarks(bookmarks);
+  renderBookmarkList();
 }
 
 // ---------- UI INIT ----------
@@ -645,8 +723,10 @@ async function toggleBookmark(entry, btn) {
   } else {
     const pendingEntry = {
       ...entry,
+      createdAt: Date.now(),
       googleLinks: [],
-      googleLinksStatus: "pending"
+      googleLinksStatus: "pending",
+      note: ""
     };
     bookmarks.push(pendingEntry);
     btn.style.color = "blue";
@@ -716,14 +796,54 @@ function createBookmarkDrawer() {
   drawer.style.zIndex = "999";
 
   drawer.innerHTML = `
-    <button onclick="closeDrawer()" style="float:left">✕</button>
-    <h2 style="margin-left:30px">Bookmarks</h2>
-    <button onclick="exportBookmarks()">Export JSON</button>
-    <div id="bookmarkList" style="margin-top:10px"></div>
+    <div class="bookmark-drawer-header">
+      <button type="button" class="bookmark-icon-button" onclick="closeDrawer()">✕</button>
+      <h2>Bookmarks</h2>
+      <button type="button" class="bookmark-icon-button" onclick="exportBookmarks()">Export</button>
+    </div>
+    <div class="bookmark-toolbar">
+      <input
+        id="bookmarkFilter"
+        type="search"
+        placeholder="Filter by title, author, note, year..."
+        aria-label="Filter bookmarks"
+      />
+      <select id="bookmarkSort" aria-label="Sort bookmarks">
+        <option value="recent_desc">Sort: Recently added</option>
+        <option value="recent_asc">Sort: Oldest added</option>
+        <option value="title_asc">Sort: Title A → Z</option>
+        <option value="title_desc">Sort: Title Z → A</option>
+        <option value="year_desc">Sort: Year (newest)</option>
+        <option value="year_asc">Sort: Year (oldest)</option>
+        <option value="citations_desc">Sort: Citations (high → low)</option>
+        <option value="citations_asc">Sort: Citations (low → high)</option>
+      </select>
+    </div>
+    <div id="bookmarkSummary" class="bookmark-summary"></div>
+    <div id="bookmarkList"></div>
   `;
 
   drawer.onclick = (e) => e.stopPropagation();
   document.body.appendChild(drawer);
+
+  const filterInput = drawer.querySelector("#bookmarkFilter");
+  const sortSelect = drawer.querySelector("#bookmarkSort");
+
+  if (filterInput) {
+    filterInput.value = bookmarkFilterTerm;
+    filterInput.addEventListener("input", (event) => {
+      bookmarkFilterTerm = event.target.value;
+      renderBookmarkList();
+    });
+  }
+
+  if (sortSelect) {
+    sortSelect.value = bookmarkSortOrder;
+    sortSelect.addEventListener("change", (event) => {
+      bookmarkSortOrder = event.target.value;
+      renderBookmarkList();
+    });
+  }
 
   renderBookmarkList();
 }
@@ -742,65 +862,131 @@ function renderBookmarkList() {
   const list = document.getElementById("bookmarkList");
   if (!list) return;
 
-  const bookmarks = getBookmarks();
+  const allBookmarks = getBookmarks();
+  const summary = document.getElementById("bookmarkSummary");
+
   list.innerHTML = "";
+
+  const filtered = filterBookmarks(allBookmarks);
+  const bookmarks = sortBookmarks(filtered);
+
+  if (summary) {
+    summary.innerText = bookmarkFilterTerm
+      ? `Showing ${bookmarks.length} of ${allBookmarks.length} bookmarks`
+      : `${allBookmarks.length} bookmarks saved`;
+  }
 
   if (bookmarks.length === 0) {
     const empty = document.createElement("div");
     empty.className = "small-note";
-    empty.innerText = "No bookmarks yet.";
+    empty.innerText = bookmarkFilterTerm
+      ? "No bookmarks match this filter."
+      : "No bookmarks yet.";
     list.appendChild(empty);
     return;
   }
 
   bookmarks.forEach((b) => {
     const item = document.createElement("div");
-    item.style.borderBottom = "1px solid #ddd";
-    item.style.padding = "8px";
-    item.style.cursor = "pointer";
+    item.className = "bookmark-item";
 
-    item.innerHTML = `<b>${b.title}</b>`;
+    const header = document.createElement("div");
+    header.className = "bookmark-item-header";
 
-    item.onclick = () => {
-      const googleLinks = Array.isArray(b.googleLinks)
-        ? b.googleLinks
-        : Array.isArray(b.pdfLinks)
-        ? b.pdfLinks
-        : [];
-      const googleStatus =
-        b.googleLinksStatus || b.pdfLinksStatus || "missing_settings";
-      let sourceSection = "";
+    const title = document.createElement("div");
+    title.className = "bookmark-item-title";
+    title.innerText = b.title || "Untitled";
 
-      if (googleStatus === "pending") {
-        sourceSection = `<div class="small-note">Finding source links...</div>`;
-      } else if (googleStatus === "missing_settings") {
-        sourceSection = `<div class="small-note">Add your Google API key + cx to find sources.</div>`;
-      } else if (googleStatus === "missing_query") {
-        sourceSection = `<div class="small-note">Missing title or author for source lookup.</div>`;
-      } else if (googleStatus && googleStatus !== "ok") {
-        sourceSection = `<div class="small-note">Could not load source links (${escapeHtml(
-          googleStatus
-        )}).</div>`;
-      }
+    const actions = document.createElement("div");
+    actions.className = "bookmark-item-actions";
 
-      item.innerHTML = `
-        <b>${b.title}</b><br>
-        <small>${b.year}${
-        b.publication_date ? ` (${b.publication_date})` : ""
-      }</small><br>
-        <small>${b.authors}</small><br>
-        ${
-          b.cited_by_count != null
-            ? `<small>Citations: ${b.cited_by_count}</small><br>`
-            : ""
-        }
-        ${b.doi ? `<small>DOI: ${b.doi}</small><br>` : ""}
-        ${renderSourcePills(googleLinks)}
-        ${sourceSection}
-        <p>${escapeHtml(b.abstract || "")}</p>
-      `;
+    const toggleButton = document.createElement("button");
+    toggleButton.type = "button";
+    toggleButton.className = "bookmark-ghost-button";
+    toggleButton.innerText = "Details";
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "bookmark-danger-button";
+    deleteButton.innerText = "Delete";
+    deleteButton.onclick = (event) => {
+      event.stopPropagation();
+      removeBookmark(b.id);
     };
 
+    actions.appendChild(toggleButton);
+    actions.appendChild(deleteButton);
+
+    header.appendChild(title);
+    header.appendChild(actions);
+
+    const meta = document.createElement("div");
+    meta.className = "bookmark-item-meta";
+    meta.innerText = [b.year, b.authors].filter(Boolean).join(" • ");
+
+    const details = document.createElement("div");
+    details.className = "bookmark-item-details";
+    details.hidden = true;
+
+    const googleLinks = Array.isArray(b.googleLinks)
+      ? b.googleLinks
+      : Array.isArray(b.pdfLinks)
+      ? b.pdfLinks
+      : [];
+    const googleStatus =
+      b.googleLinksStatus || b.pdfLinksStatus || "missing_settings";
+    let sourceSection = "";
+
+    if (googleStatus === "pending") {
+      sourceSection = `<div class="small-note">Finding source links...</div>`;
+    } else if (googleStatus === "missing_settings") {
+      sourceSection = `<div class="small-note">Add your Google API key + cx to find sources.</div>`;
+    } else if (googleStatus === "missing_query") {
+      sourceSection = `<div class="small-note">Missing title or author for source lookup.</div>`;
+    } else if (googleStatus && googleStatus !== "ok") {
+      sourceSection = `<div class="small-note">Could not load source links (${escapeHtml(
+        googleStatus
+      )}).</div>`;
+    }
+
+    details.innerHTML = `
+      <div class="bookmark-item-info">
+        <small>${b.year || "Unknown"}${
+      b.publication_date ? ` (${b.publication_date})` : ""
+    }</small>
+        <small>${escapeHtml(b.authors || "")}</small>
+        ${
+          b.cited_by_count != null
+            ? `<small>Citations: ${b.cited_by_count}</small>`
+            : ""
+        }
+        ${b.doi ? `<small>DOI: ${b.doi}</small>` : ""}
+      </div>
+      ${renderSourcePills(googleLinks)}
+      ${sourceSection}
+      <div class="bookmark-note">
+        <label for="bookmark-note-${b.id}">Note</label>
+        <textarea id="bookmark-note-${b.id}" placeholder="Add a note..."></textarea>
+      </div>
+      <p>${escapeHtml(b.abstract || "")}</p>
+    `;
+
+    const noteInput = details.querySelector("textarea");
+    if (noteInput) {
+      noteInput.value = b.note || "";
+      noteInput.addEventListener("input", (event) => {
+        updateBookmarkNote(b.id, event.target.value);
+      });
+    }
+
+    toggleButton.onclick = () => {
+      details.hidden = !details.hidden;
+      toggleButton.innerText = details.hidden ? "Details" : "Hide";
+    };
+
+    item.appendChild(header);
+    item.appendChild(meta);
+    item.appendChild(details);
     list.appendChild(item);
   });
 }

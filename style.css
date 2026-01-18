@@ -128,3 +128,126 @@ body {
 .pdf-pill:hover {
   background: #d2e3fc;
 }
+
+.bookmark-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.bookmark-drawer-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.bookmark-icon-button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  border: 1px solid #d7defc;
+  font-size: 12px;
+}
+
+.bookmark-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
+.bookmark-toolbar input,
+.bookmark-toolbar select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.bookmark-summary {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.bookmark-item {
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fafafa;
+  margin-bottom: 10px;
+}
+
+.bookmark-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bookmark-item-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.bookmark-item-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.bookmark-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bookmark-ghost-button,
+.bookmark-danger-button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid #d0d7de;
+  background: #fff;
+}
+
+.bookmark-danger-button {
+  color: #b42318;
+  border-color: #f4b4b4;
+  background: #fff5f5;
+}
+
+.bookmark-item-details {
+  margin-top: 8px;
+}
+
+.bookmark-item-details .small-note {
+  text-align: left;
+}
+
+.bookmark-item-info {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 6px;
+  color: #555;
+}
+
+.bookmark-note {
+  margin: 10px 0;
+  display: grid;
+  gap: 6px;
+}
+
+.bookmark-note label {
+  font-size: 12px;
+  color: #444;
+  font-weight: 600;
+}
+
+.bookmark-note textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px;
+  font-size: 13px;
+  resize: vertical;
+}
