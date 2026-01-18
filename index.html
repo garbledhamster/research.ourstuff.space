@@ -70,6 +70,70 @@
 
         <div class="adv-section">
           <div class="adv-section-title">
+            OpenAI ChatGPT (Research Notes)
+            <span class="help-links">
+              <a
+                href="https://platform.openai.com/api-keys"
+                target="_blank"
+                rel="noopener"
+                title="Get your OpenAI API key"
+              >Get API Key</a>
+            </span>
+          </div>
+
+          <div class="adv-grid">
+            <input
+              id="openaiApiKey"
+              type="password"
+              placeholder="OpenAI API key (stored locally)"
+            />
+            <button type="button" onclick="validateOpenAIKey()">Validate Key</button>
+          </div>
+
+          <div id="openaiValidationStatus" class="adv-note"></div>
+
+          <div id="openaiConfigPanel" style="display: none;">
+            <div class="adv-grid">
+              <select id="openaiModel" title="ChatGPT Model">
+                <option value="gpt-4o-mini">GPT-4o Mini (Fast & Affordable)</option>
+                <option value="gpt-4o">GPT-4o (Recommended)</option>
+                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+              </select>
+
+              <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                <label for="openaiTemperature" style="font-size: 0.875rem;">Temperature: <span id="tempValue">0.7</span></label>
+                <input
+                  id="openaiTemperature"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value="0.7"
+                  oninput="document.getElementById('tempValue').textContent = this.value"
+                />
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                <label for="openaiMaxTokens" style="font-size: 0.875rem;">Max Tokens: <span id="tokensValue">300</span></label>
+                <input
+                  id="openaiMaxTokens"
+                  type="range"
+                  min="100"
+                  max="500"
+                  step="50"
+                  value="300"
+                  oninput="document.getElementById('tokensValue').textContent = this.value"
+                />
+              </div>
+            </div>
+
+            <button type="button" onclick="saveOpenAISettings()">Save ChatGPT Settings</button>
+          </div>
+        </div>
+
+        <div class="adv-section">
+          <div class="adv-section-title">
             Google Source Finder (Bookmarks)
             <span class="help-links">
               <a
