@@ -70,11 +70,12 @@ function updateGoogleSettingsStatus(message) {
   const { apiKey, cx } = getGoogleSettings();
   if (!apiKey || !cx) {
     status.innerText =
-      "Add your API key + Search Engine ID to enable PDF lookup for bookmarks.";
+      "Add your API key + Search Engine ID to enable source lookup for bookmarks.";
     return;
   }
 
-  status.innerText = "Google settings saved. PDF lookup is enabled for bookmarks.";
+  status.innerText =
+    "Google settings saved. Source lookup is enabled for bookmarks.";
 }
 
 function saveGoogleSettings() {
@@ -476,7 +477,70 @@ function escapeHtml(value) {
   return String(value || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-async function fetchGooglePdfLinks(entry) {
+function normalizeGoogleLink(link) {
+  return String(link || "").replace(/#.*$/, "").trim();
+}
+
+function extractHostname(link) {
+  try {
+    return new URL(link).hostname.replace(/^www\./, "");
+  } catch (error) {
+    return "";
+  }
+}
+
+function buildGoogleQueries(title, firstAuthor) {
+  const baseParts = [];
+  if (title) baseParts.push(`"${title}"`);
+  if (firstAuthor) baseParts.push(`"${firstAuthor}"`);
+
+  return [
+    {
+      type: "primary",
+      q: baseParts.join(" ").trim(),
+      exactTerms: title || ""
+    },
+    {
+      type: "citations",
+      q: baseParts.join(" ").trim(),
+      orTerms: "cited references bibliography"
+    }
+  ].filter((query) => query.q);
+}
+
+function scoreGoogleItem(item, title) {
+  const titleLower = String(title || "").toLowerCase();
+  const itemTitle = String(item?.title || "").toLowerCase();
+  const snippet = String(item?.snippet || "").toLowerCase();
+  const link = String(item?.link || "").toLowerCase();
+
+  let score = 0;
+  if (titleLower && itemTitle.includes(titleLower)) score += 4;
+  if (titleLower && snippet.includes(titleLower)) score += 2;
+  if (link.includes(".pdf")) score -= 1;
+  return score;
+}
+
+async function fetchGoogleItems({ apiKey, cx, query }) {
+  const url = new URL("https://www.googleapis.com/customsearch/v1");
+  url.searchParams.set("key", apiKey);
+  url.searchParams.set("cx", cx);
+  url.searchParams.set("q", query.q);
+  url.searchParams.set("num", "10");
+
+  if (query.exactTerms) url.searchParams.set("exactTerms", query.exactTerms);
+  if (query.orTerms) url.searchParams.set("orTerms", query.orTerms);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    return { items: [], status: `error_${res.status}` };
+  }
+
+  const data = await res.json();
+  return { items: data?.items || [], status: "ok" };
+}
+
+async function fetchGoogleSourceLinks(entry) {
   const { apiKey, cx } = getGoogleSettings();
   if (!apiKey || !cx) {
     return { links: [], status: "missing_settings" };
@@ -484,54 +548,65 @@ async function fetchGooglePdfLinks(entry) {
 
   const title = entry.title || "";
   const firstAuthor = (entry.authors || "").split(",")[0]?.trim();
+  const queries = buildGoogleQueries(title, firstAuthor);
 
-  const queryParts = [];
-  if (title) queryParts.push(`"${title}"`);
-  if (firstAuthor) queryParts.push(`"${firstAuthor}"`);
-  queryParts.push("filetype:pdf");
-
-  const url = new URL("https://www.googleapis.com/customsearch/v1");
-  url.searchParams.set("key", apiKey);
-  url.searchParams.set("cx", cx);
-  url.searchParams.set("q", queryParts.join(" "));
-  url.searchParams.set("num", "10");
-  url.searchParams.set("fileType", "pdf");
+  if (queries.length === 0) {
+    return { links: [], status: "missing_query" };
+  }
 
   try {
-    const res = await fetch(url.toString());
-    if (!res.ok) {
-      return { links: [], status: `error_${res.status}` };
+    const aggregated = new Map();
+    let status = "ok";
+
+    for (const query of queries) {
+      const result = await fetchGoogleItems({ apiKey, cx, query });
+      if (result.status !== "ok") status = result.status;
+
+      result.items.forEach((item) => {
+        const link = normalizeGoogleLink(item?.link || "");
+        if (!link) return;
+
+        const existing = aggregated.get(link);
+        const score = scoreGoogleItem(item, title);
+        const entryData = {
+          url: link,
+          title: item?.title || extractHostname(link) || link,
+          score,
+          source: query.type
+        };
+
+        if (!existing || entryData.score > existing.score) {
+          aggregated.set(link, entryData);
+        }
+      });
     }
 
-    const data = await res.json();
-    const items = data?.items || [];
-    const unique = new Set();
+    const links = Array.from(aggregated.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
 
-    items.forEach((item) => {
-      const link = item?.link || "";
-      if (link.toLowerCase().includes(".pdf")) {
-        unique.add(link);
-      }
-    });
-
-    return { links: Array.from(unique).slice(0, 5), status: "ok" };
+    return { links, status };
   } catch (error) {
     console.error(error);
     return { links: [], status: "error_network" };
   }
 }
 
-function renderPdfPills(links) {
+function renderSourcePills(links) {
   if (!links || links.length === 0) return "";
+  const normalizedLinks = links.map((link) =>
+    typeof link === "string" ? { url: link, title: link } : link
+  );
+
   return `
     <div class="pdf-pills">
-      ${links
-        .map(
-          (link, index) =>
-            `<a class="pdf-pill" href="${link}" target="_blank" rel="noopener">PDF ${
-              index + 1
-            }</a>`
-        )
+      ${normalizedLinks
+        .map((link, index) => {
+          const label = link.title || `Source ${index + 1}`;
+          return `<a class="pdf-pill" href="${link.url}" target="_blank" rel="noopener">${escapeHtml(
+            label
+          )}</a>`;
+        })
         .join("")}
     </div>
   `;
@@ -570,8 +645,8 @@ async function toggleBookmark(entry, btn) {
   } else {
     const pendingEntry = {
       ...entry,
-      pdfLinks: [],
-      pdfLinksStatus: "pending"
+      googleLinks: [],
+      googleLinksStatus: "pending"
     };
     bookmarks.push(pendingEntry);
     btn.style.color = "blue";
@@ -582,13 +657,13 @@ async function toggleBookmark(entry, btn) {
   renderBookmarkList();
 
   if (!exists) {
-    const { links, status } = await fetchGooglePdfLinks(entry);
+    const { links, status } = await fetchGoogleSourceLinks(entry);
     const updated = getBookmarks().map((b) =>
       b.id === entry.id
         ? {
             ...b,
-            pdfLinks: links,
-            pdfLinksStatus: status
+            googleLinks: links,
+            googleLinksStatus: status
           }
         : b
     );
@@ -687,16 +762,24 @@ function renderBookmarkList() {
     item.innerHTML = `<b>${b.title}</b>`;
 
     item.onclick = () => {
-      const pdfLinks = Array.isArray(b.pdfLinks) ? b.pdfLinks : [];
-      let pdfSection = "";
+      const googleLinks = Array.isArray(b.googleLinks)
+        ? b.googleLinks
+        : Array.isArray(b.pdfLinks)
+        ? b.pdfLinks
+        : [];
+      const googleStatus =
+        b.googleLinksStatus || b.pdfLinksStatus || "missing_settings";
+      let sourceSection = "";
 
-      if (b.pdfLinksStatus === "pending") {
-        pdfSection = `<div class="small-note">Finding PDF links...</div>`;
-      } else if (b.pdfLinksStatus === "missing_settings") {
-        pdfSection = `<div class="small-note">Add your Google API key + cx to find PDFs.</div>`;
-      } else if (b.pdfLinksStatus && b.pdfLinksStatus !== "ok") {
-        pdfSection = `<div class="small-note">Could not load PDF links (${escapeHtml(
-          b.pdfLinksStatus
+      if (googleStatus === "pending") {
+        sourceSection = `<div class="small-note">Finding source links...</div>`;
+      } else if (googleStatus === "missing_settings") {
+        sourceSection = `<div class="small-note">Add your Google API key + cx to find sources.</div>`;
+      } else if (googleStatus === "missing_query") {
+        sourceSection = `<div class="small-note">Missing title or author for source lookup.</div>`;
+      } else if (googleStatus && googleStatus !== "ok") {
+        sourceSection = `<div class="small-note">Could not load source links (${escapeHtml(
+          googleStatus
         )}).</div>`;
       }
 
@@ -712,8 +795,8 @@ function renderBookmarkList() {
             : ""
         }
         ${b.doi ? `<small>DOI: ${b.doi}</small><br>` : ""}
-        ${renderPdfPills(pdfLinks)}
-        ${pdfSection}
+        ${renderSourcePills(googleLinks)}
+        ${sourceSection}
         <p>${escapeHtml(b.abstract || "")}</p>
       `;
     };
