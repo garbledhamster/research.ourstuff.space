@@ -23,6 +23,9 @@ let resolvedAuthorLabel = "";
 let resolvedSourceId = null;
 let resolvedSourceLabel = "";
 
+// Default template for AI generation
+const DEFAULT_TEMPLATE = 'paragraph';
+
 // ---------- STORAGE ----------
 
 function getBookmarks() {
@@ -481,8 +484,6 @@ At the end, recommend between 3 to 5 related materials by author and title using
 Example: Ackoff, From Data to Wisdom (1989)`
   }
 };
-
-const DEFAULT_TEMPLATE = 'paragraph';
 
 async function generateResearchNote(bookmarkId, templateId) {
   const bookmarks = getBookmarks();
