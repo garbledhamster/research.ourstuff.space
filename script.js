@@ -375,11 +375,19 @@ let currentSelectionBookmarkId = null;
 let currentSelectionText = "";
 let currentSelectionField = "";
 
-function showHighlightPopup(x, y, bookmarkId) {
+function showHighlightPopup(x, y, bookmarkId, selectedText, selectedField) {
   const popup = document.getElementById('textHighlightPopup');
   if (!popup) return;
 
   currentSelectionBookmarkId = bookmarkId;
+  
+  // Store selection data as data attributes on the popup button for persistence
+  const button = popup.querySelector('.highlight-popup-button');
+  if (button) {
+    button.dataset.bookmarkId = bookmarkId;
+    button.dataset.selectedText = selectedText;
+    button.dataset.selectedField = selectedField;
+  }
 
   // Position popup at the end of selection
   popup.style.left = x + 'px';
@@ -487,7 +495,7 @@ document.addEventListener('mouseup', (event) => {
         const x = rect.right + 5;
         const y = rect.top + window.scrollY;
         
-        showHighlightPopup(x, y, bookmarkId);
+        showHighlightPopup(x, y, bookmarkId, selectedText, highlightField);
         currentSelectionText = selectedText;
         currentSelectionField = highlightField;
       }
@@ -507,19 +515,24 @@ document.addEventListener('mousedown', (event) => {
 });
 
 // Handle highlight button click
-document.addEventListener('DOMContentLoaded', () => {
+function initializeHighlightButton() {
   const popup = document.getElementById('textHighlightPopup');
   if (popup) {
     const button = popup.querySelector('.highlight-popup-button');
     if (button) {
       button.addEventListener('click', () => {
-        if (currentSelectionBookmarkId && currentSelectionText && currentSelectionField) {
+        // Read selection data from button data attributes (more reliable than global variables)
+        const bookmarkId = button.dataset.bookmarkId;
+        const selectedText = button.dataset.selectedText;
+        const selectedField = button.dataset.selectedField;
+        
+        if (bookmarkId && selectedText && selectedField) {
           const settings = getHighlightSettings();
           const color = settings.defaultHighlightColor || 'pastel-yellow';
           addBookmarkTextHighlight(
-            currentSelectionBookmarkId,
-            currentSelectionField,
-            currentSelectionText,
+            bookmarkId,
+            selectedField,
+            selectedText,
             color
           );
           renderBookmarkList();
@@ -528,7 +541,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
-});
+}
+
+// Initialize highlight button after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeHighlightButton);
+} else {
+  initializeHighlightButton();
+}
 
 // ---------- ADVANCED TOGGLE ----------
 
