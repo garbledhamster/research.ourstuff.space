@@ -1489,9 +1489,9 @@ function renderBookmarkList() {
 
     const generateButton = document.createElement("button");
     generateButton.type = "button";
-    generateButton.className = "bookmark-ghost-button";
-    generateButton.innerText = "🤖 Generate";
-    generateButton.title = "Generate AI research note with Chatty";
+    generateButton.className = "bookmark-icon-button";
+    generateButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`;
+    generateButton.title = "Generate AI research note";
     generateButton.onclick = (event) => {
       event.stopPropagation();
       generateResearchNote(b.id);
@@ -1499,13 +1499,15 @@ function renderBookmarkList() {
 
     const toggleButton = document.createElement("button");
     toggleButton.type = "button";
-    toggleButton.className = "bookmark-ghost-button";
-    toggleButton.innerText = "Details";
+    toggleButton.className = "bookmark-icon-button";
+    toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    toggleButton.title = "View details";
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
-    deleteButton.className = "bookmark-danger-button";
-    deleteButton.innerText = "Delete";
+    deleteButton.className = "bookmark-icon-button bookmark-danger";
+    deleteButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+    deleteButton.title = "Delete bookmark";
     deleteButton.onclick = (event) => {
       event.stopPropagation();
       removeBookmark(b.id);
@@ -1516,7 +1518,6 @@ function renderBookmarkList() {
     actions.appendChild(deleteButton);
 
     header.appendChild(title);
-    header.appendChild(actions);
 
     const meta = document.createElement("div");
     meta.className = "bookmark-item-meta";
@@ -1615,6 +1616,7 @@ function renderBookmarkList() {
     item.appendChild(header);
     item.appendChild(meta);
     item.appendChild(details);
+    item.appendChild(actions);
     list.appendChild(item);
   });
 }
