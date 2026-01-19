@@ -28,6 +28,23 @@ let resolvedSourceLabel = "";
 // Default template for AI generation
 const DEFAULT_TEMPLATE = "paragraph";
 
+// AI Generation Popup Functions
+function showAIGenerationPopup(message = "Generating summary") {
+	const popup = document.getElementById("ai-generation-popup");
+	const messageElement = document.getElementById("ai-generation-popup-message");
+	if (popup && messageElement) {
+		messageElement.textContent = message;
+		popup.classList.remove("hidden");
+	}
+}
+
+function hideAIGenerationPopup() {
+	const popup = document.getElementById("ai-generation-popup");
+	if (popup) {
+		popup.classList.add("hidden");
+	}
+}
+
 function getBookmarkToggleIcons() {
 	return {
 		collapsed: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
@@ -598,6 +615,15 @@ async function generateResearchNote(bookmarkId, templateId) {
 		return;
 	}
 
+	// Determine the generation type and message
+	const isAbstraction = settings.generateAbstractions;
+	const popupMessage = isAbstraction
+		? "Generating AI abstraction..."
+		: "Generating research note...";
+
+	// Show the popup
+	showAIGenerationPopup(popupMessage);
+
 	const statusElement = document.getElementById(`chatty-status-${bookmarkId}`);
 	if (statusElement) {
 		statusElement.innerText = "Chatty is thinking...";
@@ -615,11 +641,9 @@ async function generateResearchNote(bookmarkId, templateId) {
 
 	// Determine what to generate based on settings
 	let prompt;
-	let isAbstraction = false;
 
 	if (settings.generateAbstractions) {
 		// Generate or rewrite abstractions
-		isAbstraction = true;
 		const hasOriginalAbstract = hasValidAbstract(bookmark.abstract);
 
 		if (hasOriginalAbstract) {
@@ -712,9 +736,15 @@ Provide only the abstract, nothing else.`;
 		});
 		saveBookmarks(updatedBookmarks);
 
+		// Hide the popup after successful generation
+		hideAIGenerationPopup();
+
 		// Re-render to show the content
 		renderBookmarksView();
 	} catch (err) {
+		// Hide the popup on error
+		hideAIGenerationPopup();
+
 		if (statusElement) {
 			statusElement.innerText = `Error: ${err.message}`;
 			statusElement.style.color = "var(--pico-color-red-500)";
