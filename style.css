@@ -7,6 +7,136 @@ body {
   margin: 0;
 }
 
+/* Navbar */
+.navbar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  z-index: 900;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.navbar-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.navbar-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.navbar-button:hover {
+  background: var(--surface-3);
+  border-color: var(--brand-border);
+}
+
+.navbar-icon {
+  flex-shrink: 0;
+}
+
+.navbar-button-text {
+  display: inline;
+}
+
+/* Mobile navbar - move to bottom, icon only */
+@media (max-width: 768px) {
+  .navbar {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.5rem;
+    border-bottom: none;
+    border-top: 1px solid var(--border-light);
+    box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .navbar-brand {
+    display: none;
+  }
+
+  .navbar-actions {
+    width: 100%;
+    justify-content: space-around;
+    gap: 0;
+  }
+
+  .navbar-button {
+    flex-direction: column;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    gap: 0.25rem;
+  }
+
+  .navbar-button-text {
+    display: none;
+  }
+
+  .navbar-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Tooltip on long press for mobile */
+  .navbar-button::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    margin-bottom: 0.5rem;
+    transition: opacity 0.2s;
+  }
+
+  .navbar-button:active::after {
+    opacity: 1;
+    transition-delay: 0.5s;
+  }
+
+  /* Add bottom padding to main content to account for fixed navbar */
+  main.container {
+    padding-bottom: 80px;
+  }
+}
+
 .title {
   text-align: center;
   margin: 8px 0 18px;
@@ -398,4 +528,43 @@ body {
   background: #fff5f5;
   color: #b42318;
   cursor: pointer;
+}
+
+/* Settings drawer */
+.settings-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.settings-section:last-child {
+  border-bottom: none;
+}
+
+.settings-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-grid input,
+.settings-grid select,
+.settings-grid button {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.settings-note {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-3);
 }

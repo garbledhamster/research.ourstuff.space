@@ -173,9 +173,8 @@ function removeBookmark(id) {
 
 // ---------- UI INIT ----------
 
-createDrawer();
-createFloatingButton();
-initGoogleSettings();
+createLibraryDrawer();
+createSettingsDrawer();
 
 // ---------- ADVANCED TOGGLE ----------
 
@@ -983,37 +982,21 @@ async function toggleBookmark(entry, btn) {
   }
 }
 
-// ---------- FLOATING BUTTON + DRAWER ----------
+// ---------- LIBRARY DRAWER ----------
 
-function createFloatingButton() {
-  const btn = document.createElement("button");
-  btn.innerText = "Library";
-
-  btn.style.position = "fixed";
-  btn.style.bottom = "20px";
-  btn.style.right = "20px";
-  btn.style.padding = "12px";
-  btn.style.borderRadius = "20px";
-  btn.style.cursor = "pointer";
-  btn.style.zIndex = "999";
-
-  btn.onclick = openDrawer;
-  document.body.appendChild(btn);
-}
-
-function createDrawer() {
+function createLibraryDrawer() {
   const overlay = document.createElement("div");
-  overlay.id = "drawerOverlay";
+  overlay.id = "libraryDrawerOverlay";
   overlay.style.position = "fixed";
   overlay.style.inset = "0";
   overlay.style.background = "var(--surface-overlay)";
   overlay.style.display = "none";
   overlay.style.zIndex = "998";
-  overlay.onclick = closeDrawer;
+  overlay.onclick = closeLibraryDrawer;
   document.body.appendChild(overlay);
 
   const drawer = document.createElement("div");
-  drawer.id = "drawer";
+  drawer.id = "libraryDrawer";
   drawer.style.position = "fixed";
   drawer.style.right = "-420px";
   drawer.style.top = "0";
@@ -1028,9 +1011,9 @@ function createDrawer() {
 
   drawer.innerHTML = `
     <div class="drawer-header">
-      <button type="button" class="drawer-icon-button" onclick="closeDrawer()">✕</button>
-      <h2 id="drawerTitle">Library</h2>
-      <button type="button" class="drawer-icon-button" id="drawerActionBtn" onclick="exportBookmarks()">Export</button>
+      <button type="button" class="drawer-icon-button" onclick="closeLibraryDrawer()">✕</button>
+      <h2 id="libraryDrawerTitle">Library</h2>
+      <button type="button" class="drawer-icon-button" id="libraryDrawerActionBtn" onclick="exportBookmarks()">Export</button>
     </div>
     <div class="drawer-nav">
       <button type="button" class="nav-tab active" data-view="bookmarks" onclick="switchView('bookmarks')">Bookmarks</button>
@@ -1045,14 +1028,168 @@ function createDrawer() {
   renderCurrentView();
 }
 
-function openDrawer() {
-  document.getElementById("drawer").style.right = "0px";
-  document.getElementById("drawerOverlay").style.display = "block";
+function openLibraryDrawer() {
+  document.getElementById("libraryDrawer").style.right = "0px";
+  document.getElementById("libraryDrawerOverlay").style.display = "block";
 }
 
-function closeDrawer() {
-  document.getElementById("drawer").style.right = "-420px";
-  document.getElementById("drawerOverlay").style.display = "none";
+function closeLibraryDrawer() {
+  document.getElementById("libraryDrawer").style.right = "-420px";
+  document.getElementById("libraryDrawerOverlay").style.display = "none";
+}
+
+// ---------- SETTINGS DRAWER ----------
+
+function createSettingsDrawer() {
+  const overlay = document.createElement("div");
+  overlay.id = "settingsDrawerOverlay";
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.background = "var(--surface-overlay)";
+  overlay.style.display = "none";
+  overlay.style.zIndex = "998";
+  overlay.onclick = closeSettingsDrawer;
+  document.body.appendChild(overlay);
+
+  const drawer = document.createElement("div");
+  drawer.id = "settingsDrawer";
+  drawer.style.position = "fixed";
+  drawer.style.right = "-420px";
+  drawer.style.top = "0";
+  drawer.style.width = "400px";
+  drawer.style.height = "100%";
+  drawer.style.background = "var(--surface-1)";
+  drawer.style.boxShadow = "-2px 0 8px var(--shadow-color)";
+  drawer.style.padding = "15px";
+  drawer.style.overflowY = "auto";
+  drawer.style.transition = "0.3s";
+  drawer.style.zIndex = "999";
+
+  drawer.innerHTML = `
+    <div class="drawer-header">
+      <button type="button" class="drawer-icon-button" onclick="closeSettingsDrawer()">✕</button>
+      <h2>Settings</h2>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">
+        OpenAI ChatGPT (Research Notes)
+        <span class="help-links">
+          <a
+            href="https://platform.openai.com/api-keys"
+            target="_blank"
+            rel="noopener"
+            title="Get your OpenAI API key"
+          >Get API Key</a>
+        </span>
+      </div>
+
+      <div class="settings-grid">
+        <input
+          id="openaiApiKey"
+          type="password"
+          placeholder="OpenAI API key (stored locally)"
+        />
+        <button type="button" onclick="validateOpenAIKey()">Validate Key</button>
+      </div>
+
+      <div id="openaiValidationStatus" class="settings-note"></div>
+
+      <div id="openaiConfigPanel" style="display: none;">
+        <div class="settings-grid">
+          <select id="openaiModel" title="ChatGPT Model">
+            <option value="gpt-4o-mini">GPT-4o Mini (Fast & Affordable)</option>
+            <option value="gpt-4o">GPT-4o (Recommended)</option>
+            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+          </select>
+
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label for="openaiTemperature" style="font-size: 0.875rem;">Temperature: <span id="tempValue">0.7</span></label>
+            <input
+              id="openaiTemperature"
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value="0.7"
+              oninput="document.getElementById('tempValue').textContent = this.value"
+            />
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label for="openaiMaxTokens" style="font-size: 0.875rem;">Max Tokens: <span id="tokensValue">300</span></label>
+            <input
+              id="openaiMaxTokens"
+              type="range"
+              min="100"
+              max="500"
+              step="50"
+              value="300"
+              oninput="document.getElementById('tokensValue').textContent = this.value"
+            />
+          </div>
+        </div>
+
+        <button type="button" onclick="saveOpenAISettings()" style="width: 100%; margin-top: 10px;">Save ChatGPT Settings</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">
+        Google Source Finder (Bookmarks)
+        <span class="help-links">
+          <a
+            href="https://developers.google.com/custom-search/v1/introduction"
+            target="_blank"
+            rel="noopener"
+            title="How to get an API key + set up Programmable Search Engine"
+          >Help</a>
+          <span class="dot">•</span>
+          <a
+            href="https://support.google.com/programmable-search/answer/12499034?hl=en"
+            target="_blank"
+            rel="noopener"
+            title="How to find your Search Engine ID (cx)"
+          >Find cx</a>
+        </span>
+      </div>
+
+      <div class="settings-grid">
+        <input
+          id="googleApiKey"
+          type="password"
+          placeholder="Google Custom Search API key (stored locally)"
+        />
+        <input id="googleCx" type="text" placeholder="Search Engine ID (cx) (stored locally)" />
+        <button type="button" onclick="saveGoogleSettings()" style="width: 100%;">Save Google Settings</button>
+      </div>
+
+      <div id="googleSettingsStatus" class="settings-note">
+        Tip: Restrict your API key by HTTP referrer to your GitHub Pages domain.
+      </div>
+    </div>
+
+    <div class="settings-note" style="margin-top: 20px;">
+      All settings are stored locally in your browser and are never sent to any server except the respective APIs.
+    </div>
+  `;
+
+  drawer.onclick = (e) => e.stopPropagation();
+  document.body.appendChild(drawer);
+
+  // Initialize settings after drawer is created
+  initializeSettings();
+}
+
+function openSettingsDrawer() {
+  document.getElementById("settingsDrawer").style.right = "0px";
+  document.getElementById("settingsDrawerOverlay").style.display = "block";
+}
+
+function closeSettingsDrawer() {
+  document.getElementById("settingsDrawer").style.right = "-420px";
+  document.getElementById("settingsDrawerOverlay").style.display = "none";
 }
 
 function switchView(view) {
@@ -1083,10 +1220,10 @@ function renderBookmarksView() {
   const container = document.getElementById("viewContainer");
   if (!container) return;
 
-  const drawerTitle = document.getElementById("drawerTitle");
+  const drawerTitle = document.getElementById("libraryDrawerTitle");
   if (drawerTitle) drawerTitle.innerText = "Bookmarks";
 
-  const actionBtn = document.getElementById("drawerActionBtn");
+  const actionBtn = document.getElementById("libraryDrawerActionBtn");
   if (actionBtn) {
     actionBtn.innerText = "Export";
     actionBtn.onclick = exportBookmarks;
@@ -1142,10 +1279,10 @@ function renderProjectsView() {
   const container = document.getElementById("viewContainer");
   if (!container) return;
 
-  const drawerTitle = document.getElementById("drawerTitle");
+  const drawerTitle = document.getElementById("libraryDrawerTitle");
   if (drawerTitle) drawerTitle.innerText = "Projects";
 
-  const actionBtn = document.getElementById("drawerActionBtn");
+  const actionBtn = document.getElementById("libraryDrawerActionBtn");
   if (actionBtn) {
     actionBtn.innerText = "New";
     actionBtn.onclick = showCreateProjectDialog;
@@ -1529,9 +1666,4 @@ function initializeSettings() {
   }
 }
 
-// Initialize on page load
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeSettings);
-} else {
-  initializeSettings();
-}
+// Settings are initialized when the settings drawer is created

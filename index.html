@@ -16,10 +16,31 @@
 </head>
 
 <body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <h1 class="navbar-title">📚 Research Loader</h1>
+    </div>
+    <div class="navbar-actions">
+      <button type="button" class="navbar-button" onclick="openLibraryDrawer()" title="Library">
+        <svg class="navbar-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span class="navbar-button-text">Library</span>
+      </button>
+      <button type="button" class="navbar-button" onclick="openSettingsDrawer()" title="Settings">
+        <svg class="navbar-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 1v6m0 6v6m-6-6H0m6 0h6m6 0h6"></path>
+          <path d="M19.07 4.93l-4.24 4.24m0 5.66l4.24 4.24M4.93 4.93l4.24 4.24m0 5.66l-4.24 4.24"></path>
+        </svg>
+        <span class="navbar-button-text">Settings</span>
+      </button>
+    </div>
+  </nav>
+
   <main class="container">
-    <header>
-      <h1 class="title animate__animated animate__fadeInDown">📚 Research Loader</h1>
-    </header>
 
     <!-- MAIN SEARCH -->
     <section class="search-section">
@@ -68,109 +89,8 @@
           <input id="toYear" type="number" placeholder="To year (e.g., 2026)" />
         </div>
 
-        <div class="adv-section">
-          <div class="adv-section-title">
-            OpenAI ChatGPT (Research Notes)
-            <span class="help-links">
-              <a
-                href="https://platform.openai.com/api-keys"
-                target="_blank"
-                rel="noopener"
-                title="Get your OpenAI API key"
-              >Get API Key</a>
-            </span>
-          </div>
-
-          <div class="adv-grid">
-            <input
-              id="openaiApiKey"
-              type="password"
-              placeholder="OpenAI API key (stored locally)"
-            />
-            <button type="button" onclick="validateOpenAIKey()">Validate Key</button>
-          </div>
-
-          <div id="openaiValidationStatus" class="adv-note"></div>
-
-          <div id="openaiConfigPanel" style="display: none;">
-            <div class="adv-grid">
-              <select id="openaiModel" title="ChatGPT Model">
-                <option value="gpt-4o-mini">GPT-4o Mini (Fast & Affordable)</option>
-                <option value="gpt-4o">GPT-4o (Recommended)</option>
-                <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-              </select>
-
-              <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                <label for="openaiTemperature" style="font-size: 0.875rem;">Temperature: <span id="tempValue">0.7</span></label>
-                <input
-                  id="openaiTemperature"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value="0.7"
-                  oninput="document.getElementById('tempValue').textContent = this.value"
-                />
-              </div>
-
-              <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                <label for="openaiMaxTokens" style="font-size: 0.875rem;">Max Tokens: <span id="tokensValue">300</span></label>
-                <input
-                  id="openaiMaxTokens"
-                  type="range"
-                  min="100"
-                  max="500"
-                  step="50"
-                  value="300"
-                  oninput="document.getElementById('tokensValue').textContent = this.value"
-                />
-              </div>
-            </div>
-
-            <button type="button" onclick="saveOpenAISettings()">Save ChatGPT Settings</button>
-          </div>
-        </div>
-
-        <div class="adv-section">
-          <div class="adv-section-title">
-            Google Source Finder (Bookmarks)
-            <span class="help-links">
-              <a
-                href="https://developers.google.com/custom-search/v1/introduction"
-                target="_blank"
-                rel="noopener"
-                title="How to get an API key + set up Programmable Search Engine"
-              >Help</a>
-              <span class="dot">•</span>
-              <a
-                href="https://support.google.com/programmable-search/answer/12499034?hl=en"
-                target="_blank"
-                rel="noopener"
-                title="How to find your Search Engine ID (cx)"
-              >Find cx</a>
-            </span>
-          </div>
-
-          <div class="adv-grid">
-            <input
-              id="googleApiKey"
-              type="password"
-              placeholder="Google Custom Search API key (stored locally)"
-            />
-            <input id="googleCx" type="text" placeholder="Search Engine ID (cx) (stored locally)" />
-            <button type="button" onclick="saveGoogleSettings()">Save Google Settings</button>
-          </div>
-
-          <div id="googleSettingsStatus" class="adv-note">
-            Tip: Restrict your API key by HTTP referrer to your GitHub Pages domain.
-          </div>
-        </div>
-
         <div class="adv-note">
           Author/Source filters use OpenAlex lookups (name → OpenAlex ID → works filter).
-          In bookmarks, the Google Source Finder uses your saved Google key + cx to try to locate
-          essay text first, then related citations.
         </div>
       </div>
     </section>
