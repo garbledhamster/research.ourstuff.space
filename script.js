@@ -557,7 +557,7 @@ async function generateResearchNote(bookmarkId, templateId) {
     
     if (hasOriginalAbstract) {
       // Rewrite existing abstract
-      prompt = `You are a research assistant. Rewrite the following academic paper abstract in your own words while preserving all key information. Keep it concise and academic in tone.`;
+      prompt = `You are a research assistant. Create a concise, pedagogical abstraction of the document using everything provided. If the available details are limited, reformulate the given abstract into a clear teaching-oriented explanation. If you cannot do either, relate the work to other essays with similar titles to prepare the reader for the topic.`;
       
       if (projectInstruction) {
         prompt += `\n\nAdditional instructions: ${projectInstruction}`;
@@ -575,7 +575,7 @@ ${bookmark.abstract}
 Provide only the rewritten abstract, nothing else.`;
     } else {
       // Generate new abstract
-      prompt = `You are a research assistant. Based on the title and authors of the following academic paper, write a brief abstract that describes what the paper likely covers. Keep it concise and academic in tone.`;
+      prompt = `You are a research assistant. Create a concise, pedagogical abstraction of the document using everything provided. If you lack enough information, explain what can be inferred from the title and authors. If you cannot do either, relate the work to other essays with similar titles to prepare the reader for the topic.`;
       
       if (projectInstruction) {
         prompt += `\n\nAdditional instructions: ${projectInstruction}`;
