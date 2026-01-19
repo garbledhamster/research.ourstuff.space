@@ -355,33 +355,6 @@ body {
   position: relative;
 }
 
-.text-highlight {
-  padding: 0 0.15em;
-  border-radius: 0.2em;
-  background: #fef3c7;
-  color: inherit;
-}
-
-.text-highlight.highlight-pastel-red {
-  background: #fde2e2;
-}
-
-.text-highlight.highlight-pastel-blue {
-  background: #dbeafe;
-}
-
-.text-highlight.highlight-pastel-yellow {
-  background: #fef3c7;
-}
-
-.text-highlight.highlight-pastel-green {
-  background: #dcfce7;
-}
-
-.text-highlight.highlight-pastel-grey {
-  background: #e5e7eb;
-}
-
 .bookmark-item-header {
   display: flex;
   align-items: flex-start;
@@ -921,56 +894,4 @@ body {
   border-radius: 999px;
   margin-left: 8px;
   border: 1px solid var(--brand-border);
-}
-
-/* Text selection highlight popup */
-.text-highlight-popup {
-  position: fixed;
-  z-index: 10000;
-  background: white;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 6px;
-  display: none;
-  animation: popupFadeIn 0.15s ease;
-}
-
-.text-highlight-popup.visible {
-  display: block;
-}
-
-.highlight-popup-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 25px;
-  height: 25px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.highlight-popup-button:hover {
-  background: var(--surface-2);
-}
-
-.highlight-popup-button svg {
-  width: 25px;
-  height: 25px;
-  display: block;
-}
-
-@keyframes popupFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
