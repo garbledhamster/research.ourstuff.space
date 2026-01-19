@@ -530,6 +530,29 @@ body {
   gap: 6px;
 }
 
+.project-icon-button {
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--font-color);
+}
+
+.project-icon-button:hover {
+  background: var(--surface-2);
+  border-color: var(--border-color);
+  color: var(--font-color);
+}
+
+.project-icon-button svg {
+  display: block;
+}
+
 .project-ghost-button,
 .project-danger-button {
   padding: 4px 10px;

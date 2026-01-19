@@ -136,10 +136,45 @@
               <label for="project-description-input">Description (optional)</label>
               <textarea id="project-description-input" rows="3"></textarea>
             </div>
+            <div class="form-group">
+              <label for="project-gpt-instruction-input">GPT Instruction (optional)</label>
+              <textarea id="project-gpt-instruction-input" rows="4" placeholder="Custom instructions for AI when generating text for bookmarks in this project..."></textarea>
+            </div>
           </div>
           <div class="modal__footer">
             <button type="button" class="modal__btn modal__btn-secondary" onclick="closeProjectModal()">Cancel</button>
             <button type="submit" id="create-project-submit" class="modal__btn modal__btn-primary">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-edit-project" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-edit-project-title">
+    <div class="modal__overlay">
+      <div class="modal__container">
+        <div class="modal__header">
+          <h2 id="modal-edit-project-title" class="modal__title">Edit Project</h2>
+          <button type="button" class="modal__close" aria-label="Close" onclick="closeEditProjectModal()"></button>
+        </div>
+        <form id="edit-project-form">
+          <div class="modal__content">
+            <div class="form-group">
+              <label for="edit-project-name-input">Project name</label>
+              <input id="edit-project-name-input" type="text" autocomplete="off" required />
+            </div>
+            <div class="form-group">
+              <label for="edit-project-description-input">Description (optional)</label>
+              <textarea id="edit-project-description-input" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="edit-project-gpt-instruction-input">GPT Instruction (optional)</label>
+              <textarea id="edit-project-gpt-instruction-input" rows="4" placeholder="Custom instructions for AI when generating text for bookmarks in this project..."></textarea>
+            </div>
+          </div>
+          <div class="modal__footer">
+            <button type="button" class="modal__btn modal__btn-secondary" onclick="closeEditProjectModal()">Cancel</button>
+            <button type="submit" id="edit-project-submit" class="modal__btn modal__btn-primary">Save Changes</button>
           </div>
         </form>
       </div>
