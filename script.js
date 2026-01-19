@@ -25,6 +25,17 @@ let resolvedSourceLabel = "";
 
 // ---------- STORAGE ----------
 
+// Constants for abstract validation
+const MIN_ABSTRACT_LENGTH = 30;
+const INVALID_ABSTRACT_TEXT = "Abstract not available";
+
+// Helper function to check if an abstract is valid
+function hasValidAbstract(abstract) {
+  return abstract && 
+         abstract.length >= MIN_ABSTRACT_LENGTH && 
+         abstract !== INVALID_ABSTRACT_TEXT;
+}
+
 function getBookmarks() {
   return JSON.parse(localStorage.getItem("researchBookmarks") || "[]");
 }
@@ -241,6 +252,11 @@ function getOpenAISettings() {
     model: localStorage.getItem("openaiModel") || "gpt-4o-mini",
     temperature: parseFloat(localStorage.getItem("openaiTemperature") || "0.7"),
     maxTokens: parseInt(localStorage.getItem("openaiMaxTokens") || "300", 10),
+    generateAbstractions: localStorage.getItem("openaiGenerateAbstractions") === "true",
+  };
+}
+
+function setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions) {
     defaultTemplate: localStorage.getItem("openaiDefaultTemplate") || DEFAULT_TEMPLATE,
     autogenerate: localStorage.getItem("openaiAutogenerate") === "true",
   };
@@ -251,6 +267,7 @@ function setOpenAISettings(apiKey, model, temperature, maxTokens, defaultTemplat
   localStorage.setItem("openaiModel", model);
   localStorage.setItem("openaiTemperature", String(temperature));
   localStorage.setItem("openaiMaxTokens", String(maxTokens));
+  localStorage.setItem("openaiGenerateAbstractions", String(generateAbstractions));
   if (defaultTemplate !== undefined) {
     localStorage.setItem("openaiDefaultTemplate", defaultTemplate);
   }
@@ -296,6 +313,7 @@ async function validateOpenAIKey() {
       document.getElementById("tempValue").textContent = settings.temperature;
       document.getElementById("openaiMaxTokens").value = settings.maxTokens;
       document.getElementById("tokensValue").textContent = settings.maxTokens;
+      document.getElementById("openaiGenerateAbstractions").checked = settings.generateAbstractions;
     } else {
       const error = await response.json().catch(() => ({}));
       statusDiv.innerText = `Invalid API key: ${error.error?.message || response.statusText}`;
@@ -318,6 +336,10 @@ function saveOpenAISettings() {
     document.getElementById("openaiMaxTokens")?.value || "300",
     10
   );
+  const generateAbstractions = document.getElementById("openaiGenerateAbstractions")?.checked || false;
+  const apiKey = getOpenAISettings().apiKey;
+
+  setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions);
   const defaultTemplate = document.getElementById("openaiDefaultTemplate")?.value || DEFAULT_TEMPLATE;
   const autogenerate = document.getElementById("openaiAutogenerate")?.checked || false;
   const apiKey = getOpenAISettings().apiKey;
@@ -504,6 +526,50 @@ async function generateResearchNote(bookmarkId, templateId) {
     statusElement.innerText = "Chatty is thinking...";
   }
 
+  // Determine what to generate based on settings
+  let prompt;
+  let isAbstraction = false;
+  
+  if (settings.generateAbstractions) {
+    isAbstraction = true;
+    const hasOriginalAbstract = hasValidAbstract(bookmark.abstract);
+    
+    if (hasOriginalAbstract) {
+      // Rewrite existing abstract
+      prompt = `You are a research assistant. Rewrite the following academic paper abstract in your own words while preserving all key information. Keep it concise and academic in tone.
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+
+Original Abstract:
+${bookmark.abstract}
+
+Provide only the rewritten abstract, nothing else.`;
+    } else {
+      // Generate new abstract
+      prompt = `You are a research assistant. Based on the title and authors of the following academic paper, write a brief abstract that describes what the paper likely covers. Keep it concise and academic in tone.
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+
+Provide only the abstract, nothing else.`;
+    }
+  } else {
+    // Original research note behavior
+    prompt = `You are a research assistant. Analyze the following academic paper and provide a single well-written paragraph that explains:
+1. The abstraction or theoretical framework
+2. The key findings
+3. The conclusions
+
+Keep it concise and academic in tone.
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+Abstract: ${bookmark.abstract || "No abstract available"}`;
+  }
   const prompt = template.prompt(bookmark);
 
   try {
@@ -527,15 +593,22 @@ async function generateResearchNote(bookmarkId, templateId) {
     }
 
     const data = await response.json();
-    const aiSummary = data.choices?.[0]?.message?.content || "";
+    const aiContent = data.choices?.[0]?.message?.content || "";
 
-    // Update bookmark with AI summary
-    const updatedBookmarks = bookmarks.map((b) =>
-      b.id === bookmarkId ? { ...b, aiSummary } : b
-    );
+    // Update bookmark with AI content
+    const updatedBookmarks = bookmarks.map((b) => {
+      if (b.id === bookmarkId) {
+        if (isAbstraction) {
+          return { ...b, aiAbstract: aiContent, aiAbstractGenerated: true };
+        } else {
+          return { ...b, aiSummary: aiContent };
+        }
+      }
+      return b;
+    });
     saveBookmarks(updatedBookmarks);
 
-    // Re-render to show the summary
+    // Re-render to show the content
     renderBookmarksView();
   } catch (err) {
     if (statusElement) {
@@ -1301,6 +1374,16 @@ function createSettingsDrawer() {
             />
           </div>
 
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+            <input
+              id="openaiGenerateAbstractions"
+              type="checkbox"
+              style="width: auto; margin: 0;"
+            />
+            <label for="openaiGenerateAbstractions" style="font-size: 0.875rem; margin: 0;">Generate AI abstractions for bookmarks</label>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-3); margin-top: -0.5rem; margin-left: 1.5rem;">
+            When enabled, AI will write/rewrite abstractions instead of using the original. AI-generated abstractions will be marked with 🤖.
           <select id="openaiDefaultTemplate" title="Default Output Template">
             <option value="paragraph">Paragraph</option>
             <option value="highlights">Highlights</option>
@@ -1784,14 +1867,26 @@ function renderBookmarkList() {
          </div>`
       : "";
 
-    const abstractSection = b.abstract && b.abstract.length >= 30
-      ? `<div class="chatty-summary">
+    // Display AI-generated abstract or original abstract
+    let abstractSection = "";
+    if (b.aiAbstract && b.aiAbstractGenerated) {
+      // AI-generated abstract with warning
+      abstractSection = `<div class="chatty-summary">
+           <div class="chatty-header">
+             <span class="chatty-name">🤖 Abstraction</span>
+           </div>
+           <div class="chatty-content" id="chatty-status-${b.id}">${escapeHtml(b.aiAbstract)}</div>
+           <div class="chatty-warning">Generated with OpenAI, may be inaccurate</div>
+         </div>`;
+    } else if (hasValidAbstract(b.abstract)) {
+      // Original abstract
+      abstractSection = `<div class="chatty-summary">
            <div class="chatty-header">
              <span class="chatty-name">Abstraction</span>
            </div>
            <div class="chatty-content">${escapeHtml(b.abstract)}</div>
-         </div>`
-      : "";
+         </div>`;
+    }
 
     details.innerHTML = `
       <div class="bookmark-item-info">
@@ -1898,6 +1993,7 @@ function initializeSettings() {
       document.getElementById("tempValue").textContent = openaiSettings.temperature;
       document.getElementById("openaiMaxTokens").value = openaiSettings.maxTokens;
       document.getElementById("tokensValue").textContent = openaiSettings.maxTokens;
+      document.getElementById("openaiGenerateAbstractions").checked = openaiSettings.generateAbstractions;
       document.getElementById("openaiDefaultTemplate").value = openaiSettings.defaultTemplate;
       document.getElementById("openaiAutogenerate").checked = openaiSettings.autogenerate;
     }
