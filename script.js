@@ -1106,7 +1106,7 @@ function renderWorkCard(paper) {
 				? `<div class="meta"><b>DOI:</b> <a href="https://doi.org/${doi}" target="_blank">${doi}</a></div>`
 				: ""
 		}
-    <p>${abstractToShow}</p>
+    <p class="paper-abstract">${abstractToShow}</p>
   `;
 
 	card.appendChild(bookmarkBtn);
