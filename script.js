@@ -27,6 +27,12 @@ let resolvedSourceLabel = "";
 // Default template for AI generation
 const DEFAULT_TEMPLATE = 'paragraph';
 
+function setResultsVisible(isVisible) {
+  const resultsBox = document.getElementById("results");
+  if (!resultsBox) return;
+  resultsBox.classList.toggle("is-visible", isVisible);
+}
+
 // ---------- STORAGE ----------
 
 // Constants for abstract validation
@@ -721,6 +727,8 @@ async function search() {
     alert("Enter a keyword or use Advanced filters.");
     return;
   }
+
+  setResultsVisible(true);
 
   // reset pagination + totals
   cursor = "*";
