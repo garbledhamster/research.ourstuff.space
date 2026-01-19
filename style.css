@@ -419,6 +419,9 @@ body {
 }
 
 .bookmark-icon-button {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
   padding: 8px;
   display: flex;
   align-items: center;
