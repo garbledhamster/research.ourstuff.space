@@ -264,15 +264,9 @@ function setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstra
   localStorage.setItem("openaiModel", model);
   localStorage.setItem("openaiTemperature", String(temperature));
   localStorage.setItem("openaiMaxTokens", String(maxTokens));
-  if (generateAbstractions !== undefined) {
-    localStorage.setItem("openaiGenerateAbstractions", String(generateAbstractions));
-  }
-  if (defaultTemplate !== undefined) {
-    localStorage.setItem("openaiDefaultTemplate", defaultTemplate);
-  }
-  if (autogenerate !== undefined) {
-    localStorage.setItem("openaiAutogenerate", String(autogenerate));
-  }
+  localStorage.setItem("openaiGenerateAbstractions", String(generateAbstractions !== undefined ? generateAbstractions : false));
+  localStorage.setItem("openaiDefaultTemplate", defaultTemplate || DEFAULT_TEMPLATE);
+  localStorage.setItem("openaiAutogenerate", String(autogenerate !== undefined ? autogenerate : false));
 }
 
 async function validateOpenAIKey() {
