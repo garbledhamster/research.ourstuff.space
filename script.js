@@ -327,6 +327,22 @@ function hideHighlightPopup() {
   currentSelectionBookmarkId = null;
 }
 
+// Helper function to get displayed bookmarks (filtered and sorted)
+function getDisplayedBookmarks() {
+  let bookmarks = getBookmarks();
+  
+  // Filter by active project if one is set
+  if (activeProjectId) {
+    const activeProject = getProjects().find(p => p.id === activeProjectId);
+    if (activeProject) {
+      bookmarks = bookmarks.filter(b => activeProject.paperIds.includes(b.id));
+    }
+  }
+  
+  const filtered = filterBookmarks(bookmarks);
+  return sortBookmarks(filtered);
+}
+
 // Setup text selection listener for bookmark items
 document.addEventListener('mouseup', (event) => {
   // Check if we're in the library drawer's bookmark list
@@ -349,19 +365,7 @@ document.addEventListener('mouseup', (event) => {
     const bookmarkIndex = bookmarkItems.indexOf(bookmarkItem);
     
     if (bookmarkIndex >= 0) {
-      const bookmarks = getBookmarks();
-      let filteredBookmarks = bookmarks;
-      
-      // Filter by active project if one is set
-      if (activeProjectId) {
-        const activeProject = getProjects().find(p => p.id === activeProjectId);
-        if (activeProject) {
-          filteredBookmarks = bookmarks.filter(b => activeProject.paperIds.includes(b.id));
-        }
-      }
-      
-      const filtered = filterBookmarks(filteredBookmarks);
-      const sortedBookmarks = sortBookmarks(filtered);
+      const sortedBookmarks = getDisplayedBookmarks();
       
       if (bookmarkIndex < sortedBookmarks.length) {
         const bookmarkId = sortedBookmarks[bookmarkIndex].id;
@@ -386,10 +390,8 @@ document.addEventListener('mouseup', (event) => {
 document.addEventListener('mousedown', (event) => {
   const popup = document.getElementById('textHighlightPopup');
   if (popup && !popup.contains(event.target)) {
-    const selection = window.getSelection();
-    if (!selection.toString().trim()) {
-      hideHighlightPopup();
-    }
+    // Always hide popup when clicking outside, selection will trigger new popup if still valid
+    hideHighlightPopup();
   }
 });
 
