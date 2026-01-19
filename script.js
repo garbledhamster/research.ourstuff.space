@@ -2351,6 +2351,25 @@ function createBookmarkListItem(b, options = {}) {
   item.appendChild(details);
   item.appendChild(actions);
   
+  // Add click handler for mobile to toggle navbar visibility
+  // Only on mobile (check if touch device)
+  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+  
+  item.addEventListener('click', (event) => {
+    // Only handle on mobile devices
+    if (!isMobile()) return;
+    
+    // Don't toggle if clicking on a button or interactive element
+    if (event.target.closest('button') || event.target.closest('a') || 
+        event.target.closest('input') || event.target.closest('textarea') || 
+        event.target.closest('select')) {
+      return;
+    }
+    
+    // Toggle the actions visibility
+    item.classList.toggle('actions-visible');
+  });
+  
   return item;
 }
 
