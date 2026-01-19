@@ -2021,10 +2021,15 @@ function renderProjectList() {
   });
 }
 
-function createBookmarkListItem(b) {
+function createBookmarkListItem(b, options = {}) {
   const item = document.createElement("div");
   item.className = "bookmark-item";
   item.dataset.bookmarkId = b.id;
+  const {
+    showAddToActiveProject = false,
+    activeProjectId: activeProjectIdOption = null,
+    activeProjectName = ""
+  } = options;
   
   const header = document.createElement("div");
   header.className = "bookmark-item-header";
@@ -2098,6 +2103,21 @@ function createBookmarkListItem(b) {
     event.stopPropagation();
     removeBookmark(b.id);
   };
+
+  if (showAddToActiveProject && activeProjectIdOption) {
+    const addToProjectButton = document.createElement("button");
+    addToProjectButton.type = "button";
+    addToProjectButton.className = "bookmark-icon-button bookmark-action-button";
+    addToProjectButton.title = activeProjectName
+      ? `Add to ${activeProjectName}`
+      : "Add to active project";
+    addToProjectButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span>Add to ${escapeHtml(activeProjectName || "Active")}</span>`;
+    addToProjectButton.onclick = (event) => {
+      event.stopPropagation();
+      addPaperToProject(activeProjectIdOption, b.id);
+    };
+    actions.appendChild(addToProjectButton);
+  }
   
   actions.appendChild(generateButtonContainer);
   actions.appendChild(toggleButton);
@@ -2427,7 +2447,13 @@ function renderBookmarkList() {
     list.appendChild(emptyGeneral);
   } else {
     generalBookmarks.forEach((b) => {
-      list.appendChild(createBookmarkListItem(b));
+      list.appendChild(
+        createBookmarkListItem(b, {
+          showAddToActiveProject: true,
+          activeProjectId: activeProject.id,
+          activeProjectName: activeProject.name
+        })
+      );
     });
   }
 
