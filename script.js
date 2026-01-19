@@ -1842,7 +1842,7 @@ function renderProjectList() {
     activeButton.className = "project-ghost-button";
     
     if (activeProjectId === project.id) {
-      activeButton.innerText = "Deactivate";
+      activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span>Deactivate</span>`;
       activeButton.onclick = (event) => {
         event.stopPropagation();
         setActiveProjectId(null);
@@ -1850,7 +1850,7 @@ function renderProjectList() {
         renderBookmarkList(); // Update bookmark view
       };
     } else {
-      activeButton.innerText = "Set Active";
+      activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg><span>Set Active</span>`;
       activeButton.onclick = (event) => {
         event.stopPropagation();
         setActiveProjectId(project.id);
@@ -1862,7 +1862,7 @@ function renderProjectList() {
     const toggleButton = document.createElement("button");
     toggleButton.type = "button";
     toggleButton.className = "project-ghost-button";
-    toggleButton.innerText = "Details";
+    toggleButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>Details</span>`;
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
@@ -1929,13 +1929,15 @@ function renderProjectList() {
       if (currentExpandedProjectDetails && currentExpandedProjectDetails !== details) {
         currentExpandedProjectDetails.hidden = true;
         if (currentExpandedProjectButton) {
-          currentExpandedProjectButton.innerText = "Details";
+          currentExpandedProjectButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>Details</span>`;
         }
       }
 
       // Toggle current card
       details.hidden = !details.hidden;
-      toggleButton.innerText = details.hidden ? "Details" : "Hide";
+      toggleButton.innerHTML = details.hidden
+        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>Details</span>`
+        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="3 3 21 21"/><polyline points="15 3 21 3 21 9"/></svg><span>Hide</span>`;
 
       // Update tracking
       if (details.hidden) {
