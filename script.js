@@ -25,6 +25,17 @@ let resolvedSourceLabel = "";
 
 // ---------- STORAGE ----------
 
+// Constants for abstract validation
+const MIN_ABSTRACT_LENGTH = 30;
+const INVALID_ABSTRACT_TEXT = "Abstract not available";
+
+// Helper function to check if an abstract is valid
+function hasValidAbstract(abstract) {
+  return abstract && 
+         abstract.length >= MIN_ABSTRACT_LENGTH && 
+         abstract !== INVALID_ABSTRACT_TEXT;
+}
+
 function getBookmarks() {
   return JSON.parse(localStorage.getItem("researchBookmarks") || "[]");
 }
@@ -339,7 +350,7 @@ async function generateResearchNote(bookmarkId) {
   
   if (settings.generateAbstractions) {
     isAbstraction = true;
-    const hasOriginalAbstract = bookmark.abstract && bookmark.abstract.length >= 30 && bookmark.abstract !== "Abstract not available";
+    const hasOriginalAbstract = hasValidAbstract(bookmark.abstract);
     
     if (hasOriginalAbstract) {
       // Rewrite existing abstract
@@ -1626,7 +1637,7 @@ function renderBookmarkList() {
            <div class="chatty-content" id="chatty-status-${b.id}">${escapeHtml(b.aiAbstract)}</div>
            <div class="chatty-warning">Generated with OpenAI, may be inaccurate</div>
          </div>`;
-    } else if (b.abstract && b.abstract.length >= 30 && b.abstract !== "Abstract not available") {
+    } else if (hasValidAbstract(b.abstract)) {
       // Original abstract
       abstractSection = `<div class="chatty-summary">
            <div class="chatty-header">
