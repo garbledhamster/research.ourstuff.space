@@ -26,28 +26,28 @@ let resolvedSourceId = null;
 let resolvedSourceLabel = "";
 
 // Default template for AI generation
-const DEFAULT_TEMPLATE = 'paragraph';
+const DEFAULT_TEMPLATE = "paragraph";
 
 function getBookmarkToggleIcons() {
-  return {
-    collapsed: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
-    expanded: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="3 3 21 21"/><polyline points="15 3 21 3 21 9"/></svg>`
-  };
+	return {
+		collapsed: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+		expanded: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="3 3 21 21"/><polyline points="15 3 21 3 21 9"/></svg>`,
+	};
 }
 
 function setBookmarkToggleState(button, isExpanded) {
-  const bookmarkToggleIcons = getBookmarkToggleIcons();
-  button.innerHTML = isExpanded
-    ? bookmarkToggleIcons.expanded
-    : bookmarkToggleIcons.collapsed;
-  button.title = isExpanded ? "Hide details" : "View details";
-  button.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+	const bookmarkToggleIcons = getBookmarkToggleIcons();
+	button.innerHTML = isExpanded
+		? bookmarkToggleIcons.expanded
+		: bookmarkToggleIcons.collapsed;
+	button.title = isExpanded ? "Hide details" : "View details";
+	button.setAttribute("aria-expanded", isExpanded ? "true" : "false");
 }
 
 function setResultsVisible(isVisible) {
-  const resultsBox = document.getElementById("results");
-  if (!resultsBox) return;
-  resultsBox.classList.toggle("is-visible", isVisible);
+	const resultsBox = document.getElementById("results");
+	if (!resultsBox) return;
+	resultsBox.classList.toggle("is-visible", isVisible);
 }
 
 // ---------- STORAGE ----------
@@ -58,184 +58,187 @@ const INVALID_ABSTRACT_TEXT = "Abstract not available";
 
 // Helper function to check if an abstract is valid
 function hasValidAbstract(abstract) {
-  return abstract && 
-         abstract.length >= MIN_ABSTRACT_LENGTH && 
-         abstract !== INVALID_ABSTRACT_TEXT;
+	return (
+		abstract &&
+		abstract.length >= MIN_ABSTRACT_LENGTH &&
+		abstract !== INVALID_ABSTRACT_TEXT
+	);
 }
 
 function getBookmarks() {
-  return JSON.parse(localStorage.getItem("researchBookmarks") || "[]");
+	return JSON.parse(localStorage.getItem("researchBookmarks") || "[]");
 }
 
 function saveBookmarks(data) {
-  localStorage.setItem("researchBookmarks", JSON.stringify(data));
+	localStorage.setItem("researchBookmarks", JSON.stringify(data));
 }
 
 function getGoogleSettings() {
-  return {
-    apiKey: localStorage.getItem("googleApiKey") || "",
-    cx: localStorage.getItem("googleCx") || ""
-  };
+	return {
+		apiKey: localStorage.getItem("googleApiKey") || "",
+		cx: localStorage.getItem("googleCx") || "",
+	};
 }
 
 function setGoogleSettings(apiKey, cx) {
-  localStorage.setItem("googleApiKey", apiKey || "");
-  localStorage.setItem("googleCx", cx || "");
+	localStorage.setItem("googleApiKey", apiKey || "");
+	localStorage.setItem("googleCx", cx || "");
 }
 
 function getProjects() {
-  return JSON.parse(localStorage.getItem("researchProjects") || "[]");
+	return JSON.parse(localStorage.getItem("researchProjects") || "[]");
 }
 
 function saveProjects(data) {
-  localStorage.setItem("researchProjects", JSON.stringify(data));
+	localStorage.setItem("researchProjects", JSON.stringify(data));
 }
 
 function getActiveProjectId() {
-  return localStorage.getItem("activeProjectId") || null;
+	return localStorage.getItem("activeProjectId") || null;
 }
 
 function setActiveProjectId(projectId) {
-  if (projectId) {
-    localStorage.setItem("activeProjectId", projectId);
-  } else {
-    localStorage.removeItem("activeProjectId");
-  }
-  activeProjectId = projectId;
+	if (projectId) {
+		localStorage.setItem("activeProjectId", projectId);
+	} else {
+		localStorage.removeItem("activeProjectId");
+	}
+	activeProjectId = projectId;
 }
 
 function createProject(name, description = "", gptInstruction = "") {
-  const projects = getProjects();
-  const newProject = {
-    id: `project_${Date.now()}`,
-    name,
-    description,
-    gptInstruction,
-    createdAt: Date.now(),
-    paperIds: []
-  };
-  projects.push(newProject);
-  saveProjects(projects);
-  return newProject;
+	const projects = getProjects();
+	const newProject = {
+		id: `project_${Date.now()}`,
+		name,
+		description,
+		gptInstruction,
+		createdAt: Date.now(),
+		paperIds: [],
+	};
+	projects.push(newProject);
+	saveProjects(projects);
+	return newProject;
 }
 
 function updateProject(projectId, name, description, gptInstruction) {
-  const projects = getProjects().map(p => {
-    if (p.id === projectId) {
-      return { ...p, name, description, gptInstruction };
-    }
-    return p;
-  });
-  saveProjects(projects);
-  renderCurrentView();
+	const projects = getProjects().map((p) => {
+		if (p.id === projectId) {
+			return { ...p, name, description, gptInstruction };
+		}
+		return p;
+	});
+	saveProjects(projects);
+	renderCurrentView();
 }
 
 function deleteProject(projectId) {
-  const projects = getProjects().filter(p => p.id !== projectId);
-  saveProjects(projects);
-  // If deleting the active project, deactivate it
-  if (activeProjectId === projectId) {
-    setActiveProjectId(null);
-  }
-  renderCurrentView();
+	const projects = getProjects().filter((p) => p.id !== projectId);
+	saveProjects(projects);
+	// If deleting the active project, deactivate it
+	if (activeProjectId === projectId) {
+		setActiveProjectId(null);
+	}
+	renderCurrentView();
 }
 
 function addPaperToProject(projectId, paperId) {
-  const projects = getProjects().map(p => {
-    if (p.id === projectId && !p.paperIds.includes(paperId)) {
-      return { ...p, paperIds: [...p.paperIds, paperId] };
-    }
-    return p;
-  });
-  saveProjects(projects);
-  renderCurrentView();
+	const projects = getProjects().map((p) => {
+		if (p.id === projectId && !p.paperIds.includes(paperId)) {
+			return { ...p, paperIds: [...p.paperIds, paperId] };
+		}
+		return p;
+	});
+	saveProjects(projects);
+	renderCurrentView();
 }
 
 function removePaperFromProject(projectId, paperId) {
-  const projects = getProjects().map(p => {
-    if (p.id === projectId) {
-      return { ...p, paperIds: p.paperIds.filter(id => id !== paperId) };
-    }
-    return p;
-  });
-  saveProjects(projects);
-  renderCurrentView();
+	const projects = getProjects().map((p) => {
+		if (p.id === projectId) {
+			return { ...p, paperIds: p.paperIds.filter((id) => id !== paperId) };
+		}
+		return p;
+	});
+	saveProjects(projects);
+	renderCurrentView();
 }
 
 function sortBookmarks(bookmarks) {
-  const items = [...bookmarks];
-  const getYear = (entry) => {
-    const year = parseInt(entry.year, 10);
-    return Number.isFinite(year) ? year : 0;
-  };
+	const items = [...bookmarks];
+	const getYear = (entry) => {
+		const year = parseInt(entry.year, 10);
+		return Number.isFinite(year) ? year : 0;
+	};
 
-  const getCitations = (entry) =>
-    typeof entry.cited_by_count === "number" ? entry.cited_by_count : -1;
+	const getCitations = (entry) =>
+		typeof entry.cited_by_count === "number" ? entry.cited_by_count : -1;
 
-  const compareText = (a, b) =>
-    String(a || "").localeCompare(String(b || ""), undefined, {
-      sensitivity: "base"
-    });
+	const compareText = (a, b) =>
+		String(a || "").localeCompare(String(b || ""), undefined, {
+			sensitivity: "base",
+		});
 
-  const compare = (a, b, dir = 1) => (a > b ? dir : a < b ? -dir : 0);
+	const compare = (a, b, dir = 1) => (a > b ? dir : a < b ? -dir : 0);
 
-  switch (bookmarkSortOrder) {
-    case "recent_asc":
-      return items.sort((a, b) =>
-        compare(a.createdAt || 0, b.createdAt || 0, 1)
-      );
-    case "title_asc":
-      return items.sort((a, b) => compareText(a.title, b.title));
-    case "title_desc":
-      return items.sort((a, b) => compareText(b.title, a.title));
-    case "year_asc":
-      return items.sort((a, b) => compare(getYear(a), getYear(b), 1));
-    case "year_desc":
-      return items.sort((a, b) => compare(getYear(a), getYear(b), -1));
-    case "citations_asc":
-      return items.sort((a, b) => compare(getCitations(a), getCitations(b), 1));
-    case "citations_desc":
-      return items.sort((a, b) => compare(getCitations(a), getCitations(b), -1));
-    case "recent_desc":
-    default:
-      return items.sort((a, b) =>
-        compare(a.createdAt || 0, b.createdAt || 0, -1)
-      );
-  }
+	switch (bookmarkSortOrder) {
+		case "recent_asc":
+			return items.sort((a, b) =>
+				compare(a.createdAt || 0, b.createdAt || 0, 1),
+			);
+		case "title_asc":
+			return items.sort((a, b) => compareText(a.title, b.title));
+		case "title_desc":
+			return items.sort((a, b) => compareText(b.title, a.title));
+		case "year_asc":
+			return items.sort((a, b) => compare(getYear(a), getYear(b), 1));
+		case "year_desc":
+			return items.sort((a, b) => compare(getYear(a), getYear(b), -1));
+		case "citations_asc":
+			return items.sort((a, b) => compare(getCitations(a), getCitations(b), 1));
+		case "citations_desc":
+			return items.sort((a, b) =>
+				compare(getCitations(a), getCitations(b), -1),
+			);
+		default:
+			return items.sort((a, b) =>
+				compare(a.createdAt || 0, b.createdAt || 0, -1),
+			);
+	}
 }
 
 function filterBookmarks(bookmarks) {
-  const term = bookmarkFilterTerm.trim().toLowerCase();
-  if (!term) return bookmarks;
+	const term = bookmarkFilterTerm.trim().toLowerCase();
+	if (!term) return bookmarks;
 
-  return bookmarks.filter((entry) => {
-    const haystack = [
-      entry.title,
-      entry.authors,
-      entry.year,
-      entry.publication_date,
-      entry.doi,
-      entry.note
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
+	return bookmarks.filter((entry) => {
+		const haystack = [
+			entry.title,
+			entry.authors,
+			entry.year,
+			entry.publication_date,
+			entry.doi,
+			entry.note,
+		]
+			.filter(Boolean)
+			.join(" ")
+			.toLowerCase();
 
-    return haystack.includes(term);
-  });
+		return haystack.includes(term);
+	});
 }
 
 function updateBookmarkNote(id, note) {
-  const bookmarks = getBookmarks().map((entry) =>
-    entry.id === id ? { ...entry, note } : entry
-  );
-  saveBookmarks(bookmarks);
+	const bookmarks = getBookmarks().map((entry) =>
+		entry.id === id ? { ...entry, note } : entry,
+	);
+	saveBookmarks(bookmarks);
 }
 
 function removeBookmark(id) {
-  const bookmarks = getBookmarks().filter((entry) => entry.id !== id);
-  saveBookmarks(bookmarks);
-  renderBookmarkList();
+	const bookmarks = getBookmarks().filter((entry) => entry.id !== id);
+	saveBookmarks(bookmarks);
+	renderBookmarkList();
 }
 
 // ---------- UI INIT ----------
@@ -247,170 +250,210 @@ createLibraryDrawer();
 createSettingsDrawer();
 
 // Close dropdowns when clicking outside
-document.addEventListener('click', (event) => {
-  // Check if click is outside any dropdown
-  const isClickInsideDropdown = event.target.closest('.generate-dropdown-container');
-  if (!isClickInsideDropdown) {
-    document.querySelectorAll('.generate-dropdown-menu.show').forEach(menu => {
-      menu.classList.remove('show');
-    });
-  }
+document.addEventListener("click", (event) => {
+	// Check if click is outside any dropdown
+	const isClickInsideDropdown = event.target.closest(
+		".generate-dropdown-container",
+	);
+	if (!isClickInsideDropdown) {
+		document
+			.querySelectorAll(".generate-dropdown-menu.show")
+			.forEach((menu) => {
+				menu.classList.remove("show");
+			});
+	}
 });
 
 // ---------- ADVANCED TOGGLE ----------
 
 function toggleAdvanced() {
-  const panel = document.getElementById("advancedPanel");
-  panel.style.display = panel.style.display === "block" ? "none" : "block";
+	const panel = document.getElementById("advancedPanel");
+	panel.style.display = panel.style.display === "block" ? "none" : "block";
 }
 
 function initGoogleSettings() {
-  const { apiKey, cx } = getGoogleSettings();
-  const keyInput = document.getElementById("googleApiKey");
-  const cxInput = document.getElementById("googleCx");
+	const { apiKey, cx } = getGoogleSettings();
+	const keyInput = document.getElementById("googleApiKey");
+	const cxInput = document.getElementById("googleCx");
 
-  if (keyInput) keyInput.value = apiKey;
-  if (cxInput) cxInput.value = cx;
+	if (keyInput) keyInput.value = apiKey;
+	if (cxInput) cxInput.value = cx;
 
-  updateGoogleSettingsStatus();
+	updateGoogleSettingsStatus();
 }
 
 function updateGoogleSettingsStatus(message) {
-  const status = document.getElementById("googleSettingsStatus");
-  if (!status) return;
+	const status = document.getElementById("googleSettingsStatus");
+	if (!status) return;
 
-  if (message) {
-    status.innerText = message;
-    return;
-  }
+	if (message) {
+		status.innerText = message;
+		return;
+	}
 
-  const { apiKey, cx } = getGoogleSettings();
-  if (!apiKey || !cx) {
-    status.innerText =
-      "Add your API key + Search Engine ID to enable source lookup for bookmarks.";
-    return;
-  }
+	const { apiKey, cx } = getGoogleSettings();
+	if (!apiKey || !cx) {
+		status.innerText =
+			"Add your API key + Search Engine ID to enable source lookup for bookmarks.";
+		return;
+	}
 
-  status.innerText =
-    "Google settings saved. Source lookup is enabled for bookmarks.";
+	status.innerText =
+		"Google settings saved. Source lookup is enabled for bookmarks.";
 }
 
 function saveGoogleSettings() {
-  const apiKey = document.getElementById("googleApiKey")?.value.trim() || "";
-  const cx = document.getElementById("googleCx")?.value.trim() || "";
+	const apiKey = document.getElementById("googleApiKey")?.value.trim() || "";
+	const cx = document.getElementById("googleCx")?.value.trim() || "";
 
-  setGoogleSettings(apiKey, cx);
-  updateGoogleSettingsStatus("Saved Google settings locally.");
+	setGoogleSettings(apiKey, cx);
+	updateGoogleSettingsStatus("Saved Google settings locally.");
 }
 
 // ---------- OPENAI SETTINGS ----------
 
 function getOpenAISettings() {
-  return {
-    apiKey: localStorage.getItem("openaiApiKey") || "",
-    model: localStorage.getItem("openaiModel") || "gpt-4o-mini",
-    temperature: parseFloat(localStorage.getItem("openaiTemperature") || "0.7"),
-    maxTokens: parseInt(localStorage.getItem("openaiMaxTokens") || "300", 10),
-    generateAbstractions: localStorage.getItem("openaiGenerateAbstractions") === "true",
-    defaultTemplate: localStorage.getItem("openaiDefaultTemplate") || DEFAULT_TEMPLATE,
-    autogenerate: localStorage.getItem("openaiAutogenerate") === "true",
-  };
+	return {
+		apiKey: localStorage.getItem("openaiApiKey") || "",
+		model: localStorage.getItem("openaiModel") || "gpt-4o-mini",
+		temperature: parseFloat(localStorage.getItem("openaiTemperature") || "0.7"),
+		maxTokens: parseInt(localStorage.getItem("openaiMaxTokens") || "300", 10),
+		generateAbstractions:
+			localStorage.getItem("openaiGenerateAbstractions") === "true",
+		defaultTemplate:
+			localStorage.getItem("openaiDefaultTemplate") || DEFAULT_TEMPLATE,
+		autogenerate: localStorage.getItem("openaiAutogenerate") === "true",
+	};
 }
 
-function setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions, defaultTemplate, autogenerate) {
-  localStorage.setItem("openaiApiKey", apiKey);
-  localStorage.setItem("openaiModel", model);
-  localStorage.setItem("openaiTemperature", String(temperature));
-  localStorage.setItem("openaiMaxTokens", String(maxTokens));
-  localStorage.setItem("openaiGenerateAbstractions", String(generateAbstractions !== undefined ? generateAbstractions : false));
-  localStorage.setItem("openaiDefaultTemplate", defaultTemplate || DEFAULT_TEMPLATE);
-  localStorage.setItem("openaiAutogenerate", String(autogenerate !== undefined ? autogenerate : false));
+function setOpenAISettings(
+	apiKey,
+	model,
+	temperature,
+	maxTokens,
+	generateAbstractions,
+	defaultTemplate,
+	autogenerate,
+) {
+	localStorage.setItem("openaiApiKey", apiKey);
+	localStorage.setItem("openaiModel", model);
+	localStorage.setItem("openaiTemperature", String(temperature));
+	localStorage.setItem("openaiMaxTokens", String(maxTokens));
+	localStorage.setItem(
+		"openaiGenerateAbstractions",
+		String(generateAbstractions !== undefined ? generateAbstractions : false),
+	);
+	localStorage.setItem(
+		"openaiDefaultTemplate",
+		defaultTemplate || DEFAULT_TEMPLATE,
+	);
+	localStorage.setItem(
+		"openaiAutogenerate",
+		String(autogenerate !== undefined ? autogenerate : false),
+	);
 }
 
 async function validateOpenAIKey() {
-  const apiKeyInput = document.getElementById("openaiApiKey");
-  const apiKey = apiKeyInput?.value.trim() || "";
-  const statusDiv = document.getElementById("openaiValidationStatus");
-  const configPanel = document.getElementById("openaiConfigPanel");
+	const apiKeyInput = document.getElementById("openaiApiKey");
+	const apiKey = apiKeyInput?.value.trim() || "";
+	const statusDiv = document.getElementById("openaiValidationStatus");
+	const configPanel = document.getElementById("openaiConfigPanel");
 
-  if (!apiKey) {
-    statusDiv.innerText = "Please enter an API key.";
-    statusDiv.style.color = "var(--pico-color-red-500)";
-    configPanel.style.display = "none";
-    return;
-  }
+	if (!apiKey) {
+		statusDiv.innerText = "Please enter an API key.";
+		statusDiv.style.color = "var(--pico-color-red-500)";
+		configPanel.style.display = "none";
+		return;
+	}
 
-  statusDiv.innerText = "Validating...";
-  statusDiv.style.color = "";
+	statusDiv.innerText = "Validating...";
+	statusDiv.style.color = "";
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/models", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
+	try {
+		const response = await fetch("https://api.openai.com/v1/models", {
+			method: "GET",
+			headers: {
+				Authorization: `Bearer ${apiKey}`,
+			},
+		});
 
-    if (response.ok) {
-      localStorage.setItem("openaiApiKey", apiKey);
-      statusDiv.innerText = "API key is valid! Configuration options revealed below.";
-      statusDiv.style.color = "var(--pico-color-green-500)";
-      configPanel.style.display = "block";
+		if (response.ok) {
+			localStorage.setItem("openaiApiKey", apiKey);
+			statusDiv.innerText =
+				"API key is valid! Configuration options revealed below.";
+			statusDiv.style.color = "var(--pico-color-green-500)";
+			configPanel.style.display = "block";
 
-      // Load saved settings
-      const settings = getOpenAISettings();
-      document.getElementById("openaiModel").value = settings.model;
-      document.getElementById("openaiTemperature").value = settings.temperature;
-      document.getElementById("tempValue").textContent = settings.temperature;
-      document.getElementById("openaiMaxTokens").value = settings.maxTokens;
-      document.getElementById("tokensValue").textContent = settings.maxTokens;
-      document.getElementById("openaiGenerateAbstractions").checked = settings.generateAbstractions;
-      document.getElementById("openaiDefaultTemplate").value = settings.defaultTemplate;
-      document.getElementById("openaiAutogenerate").checked = settings.autogenerate;
-    } else {
-      const error = await response.json().catch(() => ({}));
-      statusDiv.innerText = `Invalid API key: ${error.error?.message || response.statusText}`;
-      statusDiv.style.color = "var(--pico-color-red-500)";
-      configPanel.style.display = "none";
-    }
-  } catch (err) {
-    statusDiv.innerText = `Validation error: ${err.message}`;
-    statusDiv.style.color = "var(--pico-color-red-500)";
-    configPanel.style.display = "none";
-  }
+			// Load saved settings
+			const settings = getOpenAISettings();
+			document.getElementById("openaiModel").value = settings.model;
+			document.getElementById("openaiTemperature").value = settings.temperature;
+			document.getElementById("tempValue").textContent = settings.temperature;
+			document.getElementById("openaiMaxTokens").value = settings.maxTokens;
+			document.getElementById("tokensValue").textContent = settings.maxTokens;
+			document.getElementById("openaiGenerateAbstractions").checked =
+				settings.generateAbstractions;
+			document.getElementById("openaiDefaultTemplate").value =
+				settings.defaultTemplate;
+			document.getElementById("openaiAutogenerate").checked =
+				settings.autogenerate;
+		} else {
+			const error = await response.json().catch(() => ({}));
+			statusDiv.innerText = `Invalid API key: ${error.error?.message || response.statusText}`;
+			statusDiv.style.color = "var(--pico-color-red-500)";
+			configPanel.style.display = "none";
+		}
+	} catch (err) {
+		statusDiv.innerText = `Validation error: ${err.message}`;
+		statusDiv.style.color = "var(--pico-color-red-500)";
+		configPanel.style.display = "none";
+	}
 }
 
 function saveOpenAISettings() {
-  const model = document.getElementById("openaiModel")?.value || "gpt-4o-mini";
-  const temperature = parseFloat(
-    document.getElementById("openaiTemperature")?.value || "0.7"
-  );
-  const maxTokens = parseInt(
-    document.getElementById("openaiMaxTokens")?.value || "300",
-    10
-  );
-  const generateAbstractions = document.getElementById("openaiGenerateAbstractions")?.checked || false;
-  const defaultTemplate = document.getElementById("openaiDefaultTemplate")?.value || DEFAULT_TEMPLATE;
-  const autogenerate = document.getElementById("openaiAutogenerate")?.checked || false;
-  const apiKey = getOpenAISettings().apiKey;
+	const model = document.getElementById("openaiModel")?.value || "gpt-4o-mini";
+	const temperature = parseFloat(
+		document.getElementById("openaiTemperature")?.value || "0.7",
+	);
+	const maxTokens = parseInt(
+		document.getElementById("openaiMaxTokens")?.value || "300",
+		10,
+	);
+	const generateAbstractions =
+		document.getElementById("openaiGenerateAbstractions")?.checked || false;
+	const defaultTemplate =
+		document.getElementById("openaiDefaultTemplate")?.value || DEFAULT_TEMPLATE;
+	const autogenerate =
+		document.getElementById("openaiAutogenerate")?.checked || false;
+	const apiKey = getOpenAISettings().apiKey;
 
-  setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions, defaultTemplate, autogenerate);
+	setOpenAISettings(
+		apiKey,
+		model,
+		temperature,
+		maxTokens,
+		generateAbstractions,
+		defaultTemplate,
+		autogenerate,
+	);
 
-  const statusDiv = document.getElementById("openaiValidationStatus");
-  const originalText = statusDiv.innerText;
-  statusDiv.innerText = "ChatGPT settings saved!";
-  statusDiv.style.color = "var(--pico-color-green-500)";
+	const statusDiv = document.getElementById("openaiValidationStatus");
+	const originalText = statusDiv.innerText;
+	statusDiv.innerText = "ChatGPT settings saved!";
+	statusDiv.style.color = "var(--pico-color-green-500)";
 
-  setTimeout(() => {
-    statusDiv.innerText = originalText;
-  }, 2000);
+	setTimeout(() => {
+		statusDiv.innerText = originalText;
+	}, 2000);
 }
 
 // Template definitions for AI prompts
 const AI_TEMPLATES = {
-  paragraph: {
-    name: "Paragraph",
-    prompt: (bookmark) => `You are a research assistant. Analyze the following academic paper and provide a single well-written paragraph that explains:
+	paragraph: {
+		name: "Paragraph",
+		prompt: (
+			bookmark,
+		) => `You are a research assistant. Analyze the following academic paper and provide a single well-written paragraph that explains:
 1. The abstraction or theoretical framework
 2. The key findings
 3. The conclusions
@@ -424,11 +467,13 @@ Abstract: ${bookmark.abstract || "No abstract available"}
 
 At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
 {Author, Material Title (Year Written)}
-Example: Ackoff, From Data to Wisdom (1989)`
-  },
-  research_analysis_paragraph: {
-    name: "Research Analysis (Paragraph)",
-    prompt: (bookmark) => `You are a research analyst. Provide a comprehensive analytical paragraph examining this academic paper:
+Example: Ackoff, From Data to Wisdom (1989)`,
+	},
+	research_analysis_paragraph: {
+		name: "Research Analysis (Paragraph)",
+		prompt: (
+			bookmark,
+		) => `You are a research analyst. Provide a comprehensive analytical paragraph examining this academic paper:
 - Research question and objectives
 - Theoretical framework and literature positioning
 - Methodology and approach
@@ -444,11 +489,13 @@ Abstract: ${bookmark.abstract || "No abstract available"}
 
 At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
 {Author, Material Title (Year Written)}
-Example: Ackoff, From Data to Wisdom (1989)`
-  },
-  research_analysis_bullets: {
-    name: "Research Analysis (Bullet Points)",
-    prompt: (bookmark) => `You are a research analyst. Provide a structured analysis of this academic paper in bullet points:
+Example: Ackoff, From Data to Wisdom (1989)`,
+	},
+	research_analysis_bullets: {
+		name: "Research Analysis (Bullet Points)",
+		prompt: (
+			bookmark,
+		) => `You are a research analyst. Provide a structured analysis of this academic paper in bullet points:
 
 **Research Question:**
 - [Question being addressed]
@@ -477,11 +524,13 @@ Abstract: ${bookmark.abstract || "No abstract available"}
 
 At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
 {Author, Material Title (Year Written)}
-Example: Ackoff, From Data to Wisdom (1989)`
-  },
-  arguments_main_points: {
-    name: "Arguments and Main Points",
-    prompt: (bookmark) => `You are a research assistant. Identify and explain the main arguments and points of this academic paper:
+Example: Ackoff, From Data to Wisdom (1989)`,
+	},
+	arguments_main_points: {
+		name: "Arguments and Main Points",
+		prompt: (
+			bookmark,
+		) => `You are a research assistant. Identify and explain the main arguments and points of this academic paper:
 
 **Central Argument:**
 [The paper's main thesis or argument]
@@ -504,11 +553,13 @@ Abstract: ${bookmark.abstract || "No abstract available"}
 
 At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
 {Author, Material Title (Year Written)}
-Example: Ackoff, From Data to Wisdom (1989)`
-  },
-  connections_cited_works: {
-    name: "Connections and Cited Works",
-    prompt: (bookmark) => `You are a research assistant. Analyze the connections and intellectual lineage of this academic paper:
+Example: Ackoff, From Data to Wisdom (1989)`,
+	},
+	connections_cited_works: {
+		name: "Connections and Cited Works",
+		prompt: (
+			bookmark,
+		) => `You are a research assistant. Analyze the connections and intellectual lineage of this academic paper:
 
 **Theoretical Foundations:**
 [Key theories and frameworks this work builds upon]
@@ -532,54 +583,54 @@ Abstract: ${bookmark.abstract || "No abstract available"}
 
 At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
 {Author, Material Title (Year Written)}
-Example: Ackoff, From Data to Wisdom (1989)`
-  }
+Example: Ackoff, From Data to Wisdom (1989)`,
+	},
 };
 
 async function generateResearchNote(bookmarkId, templateId) {
-  const bookmarks = getBookmarks();
-  const bookmark = bookmarks.find((b) => b.id === bookmarkId);
-  if (!bookmark) return;
+	const bookmarks = getBookmarks();
+	const bookmark = bookmarks.find((b) => b.id === bookmarkId);
+	if (!bookmark) return;
 
-  const settings = getOpenAISettings();
-  if (!settings.apiKey) {
-    alert("Please add and validate your OpenAI API key in Advanced settings.");
-    return;
-  }
+	const settings = getOpenAISettings();
+	if (!settings.apiKey) {
+		alert("Please add and validate your OpenAI API key in Advanced settings.");
+		return;
+	}
 
-  const statusElement = document.getElementById(`chatty-status-${bookmarkId}`);
-  if (statusElement) {
-    statusElement.innerText = "Chatty is thinking...";
-  }
+	const statusElement = document.getElementById(`chatty-status-${bookmarkId}`);
+	if (statusElement) {
+		statusElement.innerText = "Chatty is thinking...";
+	}
 
-  // Get active project's GPT instruction if available
-  let projectInstruction = "";
-  if (activeProjectId) {
-    const projects = getProjects();
-    const activeProject = projects.find(p => p.id === activeProjectId);
-    if (activeProject && activeProject.gptInstruction) {
-      projectInstruction = activeProject.gptInstruction;
-    }
-  }
+	// Get active project's GPT instruction if available
+	let projectInstruction = "";
+	if (activeProjectId) {
+		const projects = getProjects();
+		const activeProject = projects.find((p) => p.id === activeProjectId);
+		if (activeProject?.gptInstruction) {
+			projectInstruction = activeProject.gptInstruction;
+		}
+	}
 
-  // Determine what to generate based on settings
-  let prompt;
-  let isAbstraction = false;
-  
-  if (settings.generateAbstractions) {
-    // Generate or rewrite abstractions
-    isAbstraction = true;
-    const hasOriginalAbstract = hasValidAbstract(bookmark.abstract);
-    
-    if (hasOriginalAbstract) {
-      // Rewrite existing abstract
-      prompt = `You are a research assistant. Create a concise, pedagogical abstraction of the document using everything provided. If the available details are limited, reformulate the given abstract into a clear teaching-oriented explanation. If you cannot do either, relate the work to other essays with similar titles to prepare the reader for the topic.`;
-      
-      if (projectInstruction) {
-        prompt += `\n\nAdditional instructions: ${projectInstruction}`;
-      }
-      
-      prompt += `
+	// Determine what to generate based on settings
+	let prompt;
+	let isAbstraction = false;
+
+	if (settings.generateAbstractions) {
+		// Generate or rewrite abstractions
+		isAbstraction = true;
+		const hasOriginalAbstract = hasValidAbstract(bookmark.abstract);
+
+		if (hasOriginalAbstract) {
+			// Rewrite existing abstract
+			prompt = `You are a research assistant. Create a concise, pedagogical abstraction of the document using everything provided. If the available details are limited, reformulate the given abstract into a clear teaching-oriented explanation. If you cannot do either, relate the work to other essays with similar titles to prepare the reader for the topic.`;
+
+			if (projectInstruction) {
+				prompt += `\n\nAdditional instructions: ${projectInstruction}`;
+			}
+
+			prompt += `
 
 Title: ${bookmark.title}
 Authors: ${bookmark.authors || "Unknown"}
@@ -589,659 +640,668 @@ Original Abstract:
 ${bookmark.abstract}
 
 Provide only the rewritten abstract, nothing else.`;
-    } else {
-      // Generate new abstract
-      prompt = `You are a research assistant. Create a concise, pedagogical abstraction of the document using everything provided. If you lack enough information, explain what can be inferred from the title and authors. If you cannot do either, relate the work to other essays with similar titles to prepare the reader for the topic.`;
-      
-      if (projectInstruction) {
-        prompt += `\n\nAdditional instructions: ${projectInstruction}`;
-      }
-      
-      prompt += `
+		} else {
+			// Generate new abstract
+			prompt = `You are a research assistant. Create a concise, pedagogical abstraction of the document using everything provided. If you lack enough information, explain what can be inferred from the title and authors. If you cannot do either, relate the work to other essays with similar titles to prepare the reader for the topic.`;
+
+			if (projectInstruction) {
+				prompt += `\n\nAdditional instructions: ${projectInstruction}`;
+			}
+
+			prompt += `
 
 Title: ${bookmark.title}
 Authors: ${bookmark.authors || "Unknown"}
 Year: ${bookmark.year || "Unknown"}
 
 Provide only the abstract, nothing else.`;
-    }
-  } else {
-    // Use template for research notes
-    const selectedTemplate = templateId || settings.defaultTemplate;
-    const template = AI_TEMPLATES[selectedTemplate] || AI_TEMPLATES[DEFAULT_TEMPLATE];
-    prompt = template.prompt(bookmark);
-    
-    // Append project instruction if available
-    if (projectInstruction) {
-      prompt += `\n\nAdditional instructions: ${projectInstruction}`;
-    }
-  }
+		}
+	} else {
+		// Use template for research notes
+		const selectedTemplate = templateId || settings.defaultTemplate;
+		const template =
+			AI_TEMPLATES[selectedTemplate] || AI_TEMPLATES[DEFAULT_TEMPLATE];
+		prompt = template.prompt(bookmark);
 
-  try {
-    const requestBody = {
-      model: settings.model,
-      messages: [{ role: "user", content: prompt }],
-      temperature: settings.temperature,
-    };
+		// Append project instruction if available
+		if (projectInstruction) {
+			prompt += `\n\nAdditional instructions: ${projectInstruction}`;
+		}
+	}
 
-    if (settings.model.startsWith("gpt-5")) {
-      requestBody.max_completion_tokens = settings.maxTokens;
-    } else {
-      requestBody.max_tokens = settings.maxTokens;
-    }
+	try {
+		const requestBody = {
+			model: settings.model,
+			messages: [{ role: "user", content: prompt }],
+			temperature: settings.temperature,
+		};
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${settings.apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
+		if (settings.model.startsWith("gpt-5")) {
+			requestBody.max_completion_tokens = settings.maxTokens;
+		} else {
+			requestBody.max_tokens = settings.maxTokens;
+		}
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error?.message || response.statusText);
-    }
+		const response = await fetch("https://api.openai.com/v1/chat/completions", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${settings.apiKey}`,
+			},
+			body: JSON.stringify(requestBody),
+		});
 
-    const data = await response.json();
-    const aiContent = data.choices?.[0]?.message?.content || "";
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({}));
+			throw new Error(error.error?.message || response.statusText);
+		}
 
-    // Update bookmark with AI content
-    const updatedBookmarks = bookmarks.map((b) => {
-      if (b.id === bookmarkId) {
-        if (isAbstraction) {
-          return { ...b, aiAbstract: aiContent, aiAbstractGenerated: true };
-        } else {
-          return { ...b, aiSummary: aiContent };
-        }
-      }
-      return b;
-    });
-    saveBookmarks(updatedBookmarks);
+		const data = await response.json();
+		const aiContent = data.choices?.[0]?.message?.content || "";
 
-    // Re-render to show the content
-    renderBookmarksView();
-  } catch (err) {
-    if (statusElement) {
-      statusElement.innerText = `Error: ${err.message}`;
-      statusElement.style.color = "var(--pico-color-red-500)";
-    } else {
-      alert(`Error generating note: ${err.message}`);
-    }
-  }
+		// Update bookmark with AI content
+		const updatedBookmarks = bookmarks.map((b) => {
+			if (b.id === bookmarkId) {
+				if (isAbstraction) {
+					return { ...b, aiAbstract: aiContent, aiAbstractGenerated: true };
+				} else {
+					return { ...b, aiSummary: aiContent };
+				}
+			}
+			return b;
+		});
+		saveBookmarks(updatedBookmarks);
+
+		// Re-render to show the content
+		renderBookmarksView();
+	} catch (err) {
+		if (statusElement) {
+			statusElement.innerText = `Error: ${err.message}`;
+			statusElement.style.color = "var(--pico-color-red-500)";
+		} else {
+			alert(`Error generating note: ${err.message}`);
+		}
+	}
 }
 
 // ---------- OPENALEX HELPERS ----------
 
 function normalizeOpenAlexId(maybeUrl) {
-  if (!maybeUrl) return "";
-  const parts = String(maybeUrl).split("/");
-  return parts[parts.length - 1]; // A..., S..., W...
+	if (!maybeUrl) return "";
+	const parts = String(maybeUrl).split("/");
+	return parts[parts.length - 1]; // A..., S..., W...
 }
 
 function safeYearToDateStart(y) {
-  const year = parseInt(y, 10);
-  if (!Number.isFinite(year) || year < 1) return "";
-  return `${String(year).padStart(4, "0")}-01-01`;
+	const year = parseInt(y, 10);
+	if (!Number.isFinite(year) || year < 1) return "";
+	return `${String(year).padStart(4, "0")}-01-01`;
 }
 
 function safeYearToDateEnd(y) {
-  const year = parseInt(y, 10);
-  if (!Number.isFinite(year) || year < 1) return "";
-  return `${String(year).padStart(4, "0")}-12-31`;
+	const year = parseInt(y, 10);
+	if (!Number.isFinite(year) || year < 1) return "";
+	return `${String(year).padStart(4, "0")}-12-31`;
 }
 
 async function resolveAuthorIdByName(name) {
-  const q = name.trim();
-  if (!q) return { id: null, label: "" };
+	const q = name.trim();
+	if (!q) return { id: null, label: "" };
 
-  const url = new URL("https://api.openalex.org/authors");
-  url.searchParams.set("search", q);
-  url.searchParams.set("per-page", "5");
+	const url = new URL("https://api.openalex.org/authors");
+	url.searchParams.set("search", q);
+	url.searchParams.set("per-page", "5");
 
-  const res = await fetch(url.toString());
-  if (!res.ok) return { id: null, label: "" };
+	const res = await fetch(url.toString());
+	if (!res.ok) return { id: null, label: "" };
 
-  const data = await res.json();
-  const hit = data?.results?.[0];
-  if (!hit) return { id: null, label: "" };
+	const data = await res.json();
+	const hit = data?.results?.[0];
+	if (!hit) return { id: null, label: "" };
 
-  const id = normalizeOpenAlexId(hit.id);
-  const label = hit.display_name ? `${hit.display_name} (${id})` : id;
-  return { id, label };
+	const id = normalizeOpenAlexId(hit.id);
+	const label = hit.display_name ? `${hit.display_name} (${id})` : id;
+	return { id, label };
 }
 
 async function resolveSourceIdByName(name) {
-  const q = name.trim();
-  if (!q) return { id: null, label: "" };
+	const q = name.trim();
+	if (!q) return { id: null, label: "" };
 
-  const url = new URL("https://api.openalex.org/sources");
-  url.searchParams.set("search", q);
-  url.searchParams.set("per-page", "5");
-  // prefer "bigger" sources when ambiguous
-  url.searchParams.set("sort", "works_count:desc");
+	const url = new URL("https://api.openalex.org/sources");
+	url.searchParams.set("search", q);
+	url.searchParams.set("per-page", "5");
+	// prefer "bigger" sources when ambiguous
+	url.searchParams.set("sort", "works_count:desc");
 
-  const res = await fetch(url.toString());
-  if (!res.ok) return { id: null, label: "" };
+	const res = await fetch(url.toString());
+	if (!res.ok) return { id: null, label: "" };
 
-  const data = await res.json();
-  const hit = data?.results?.[0];
-  if (!hit) return { id: null, label: "" };
+	const data = await res.json();
+	const hit = data?.results?.[0];
+	if (!hit) return { id: null, label: "" };
 
-  const id = normalizeOpenAlexId(hit.id);
-  const label = hit.display_name ? `${hit.display_name} (${id})` : id;
-  return { id, label };
+	const id = normalizeOpenAlexId(hit.id);
+	const label = hit.display_name ? `${hit.display_name} (${id})` : id;
+	return { id, label };
 }
 
 // OpenAlex abstracts are often given as an "inverted index".
 // This reconstructs the text in the right order.
 function reconstructAbstract(invertedIndex) {
-  if (!invertedIndex || typeof invertedIndex !== "object") return "";
+	if (!invertedIndex || typeof invertedIndex !== "object") return "";
 
-  let maxPos = -1;
-  for (const positions of Object.values(invertedIndex)) {
-    for (const p of positions) {
-      if (p > maxPos) maxPos = p;
-    }
-  }
-  if (maxPos < 0) return "";
+	let maxPos = -1;
+	for (const positions of Object.values(invertedIndex)) {
+		for (const p of positions) {
+			if (p > maxPos) maxPos = p;
+		}
+	}
+	if (maxPos < 0) return "";
 
-  const words = new Array(maxPos + 1).fill("");
-  for (const [word, positions] of Object.entries(invertedIndex)) {
-    for (const p of positions) {
-      words[p] = word;
-    }
-  }
+	const words = new Array(maxPos + 1).fill("");
+	for (const [word, positions] of Object.entries(invertedIndex)) {
+		for (const p of positions) {
+			words[p] = word;
+		}
+	}
 
-  return words.join(" ").replace(/\s+/g, " ").trim();
+	return words.join(" ").replace(/\s+/g, " ").trim();
 }
 
 // ---------- SEARCH ----------
 
 async function search() {
-  const queryInput = document.getElementById("query");
-  const sortSelect = document.getElementById("sortOrder");
+	const queryInput = document.getElementById("query");
+	const sortSelect = document.getElementById("sortOrder");
 
-  const exact = document.getElementById("exactPhrase").value.trim();
-  const titleTerm = document.getElementById("titleTerm").value.trim();
-  const abstractTerm = document.getElementById("abstractTerm").value.trim();
+	const exact = document.getElementById("exactPhrase").value.trim();
+	const titleTerm = document.getElementById("titleTerm").value.trim();
+	const abstractTerm = document.getElementById("abstractTerm").value.trim();
 
-  const authorName = document.getElementById("authorName").value.trim();
-  const sourceName = document.getElementById("sourceName").value.trim();
+	const authorName = document.getElementById("authorName").value.trim();
+	const sourceName = document.getElementById("sourceName").value.trim();
 
-  const fromYear = document.getElementById("fromYear").value;
-  const toYear = document.getElementById("toYear").value;
+	const fromYear = document.getElementById("fromYear").value;
+	const toYear = document.getElementById("toYear").value;
 
-  currentQuery = queryInput.value.trim();
-  currentSort = sortSelect.value;
+	currentQuery = queryInput.value.trim();
+	currentSort = sortSelect.value;
 
-  const hasSomeInput =
-    !!currentQuery ||
-    !!exact ||
-    !!titleTerm ||
-    !!abstractTerm ||
-    !!authorName ||
-    !!sourceName ||
-    !!fromYear ||
-    !!toYear;
+	const hasSomeInput =
+		!!currentQuery ||
+		!!exact ||
+		!!titleTerm ||
+		!!abstractTerm ||
+		!!authorName ||
+		!!sourceName ||
+		!!fromYear ||
+		!!toYear;
 
-  if (!hasSomeInput) {
-    alert("Enter a keyword or use Advanced filters.");
-    return;
-  }
+	if (!hasSomeInput) {
+		alert("Enter a keyword or use Advanced filters.");
+		return;
+	}
 
-  setResultsVisible(true);
+	setResultsVisible(true);
 
-  // reset pagination + totals
-  cursor = "*";
-  isLoading = false;
-  totalResults = 0;
-  loadedResults = 0;
+	// reset pagination + totals
+	cursor = "*";
+	isLoading = false;
+	totalResults = 0;
+	loadedResults = 0;
 
-  // reset resolved IDs each new search
-  resolvedAuthorId = null;
-  resolvedAuthorLabel = "";
-  resolvedSourceId = null;
-  resolvedSourceLabel = "";
+	// reset resolved IDs each new search
+	resolvedAuthorId = null;
+	resolvedAuthorLabel = "";
+	resolvedSourceId = null;
+	resolvedSourceLabel = "";
 
-  const resultsBox = document.getElementById("results");
-  resultsBox.innerHTML = "";
+	const resultsBox = document.getElementById("results");
+	resultsBox.innerHTML = "";
 
-  const status = document.createElement("div");
-  status.id = "status";
-  status.className = "small-note";
-  status.innerText = "Resolving filters...";
-  resultsBox.appendChild(status);
+	const status = document.createElement("div");
+	status.id = "status";
+	status.className = "small-note";
+	status.innerText = "Resolving filters...";
+	resultsBox.appendChild(status);
 
-  // two-step lookup: name -> ID
-  try {
-    if (authorName) {
-      const a = await resolveAuthorIdByName(authorName);
-      resolvedAuthorId = a.id;
-      resolvedAuthorLabel = a.label;
-    }
-    if (sourceName) {
-      const s = await resolveSourceIdByName(sourceName);
-      resolvedSourceId = s.id;
-      resolvedSourceLabel = s.label;
-    }
-  } catch (e) {
-    console.error(e);
-  }
+	// two-step lookup: name -> ID
+	try {
+		if (authorName) {
+			const a = await resolveAuthorIdByName(authorName);
+			resolvedAuthorId = a.id;
+			resolvedAuthorLabel = a.label;
+		}
+		if (sourceName) {
+			const s = await resolveSourceIdByName(sourceName);
+			resolvedSourceId = s.id;
+			resolvedSourceLabel = s.label;
+		}
+	} catch (e) {
+		console.error(e);
+	}
 
-  // show what resolved
-  const parts = [];
-  if (resolvedAuthorId) parts.push(`Author: ${resolvedAuthorLabel}`);
-  else if (authorName) parts.push("Author: (no match)");
+	// show what resolved
+	const parts = [];
+	if (resolvedAuthorId) parts.push(`Author: ${resolvedAuthorLabel}`);
+	else if (authorName) parts.push("Author: (no match)");
 
-  if (resolvedSourceId) parts.push(`Source: ${resolvedSourceLabel}`);
-  else if (sourceName) parts.push("Source: (no match)");
+	if (resolvedSourceId) parts.push(`Source: ${resolvedSourceLabel}`);
+	else if (sourceName) parts.push("Source: (no match)");
 
-  const fromD = safeYearToDateStart(fromYear);
-  const toD = safeYearToDateEnd(toYear);
-  if (fromD || toD)
-    parts.push(`Date range: ${fromYear || "…"}–${toYear || "…"}`);
+	const fromD = safeYearToDateStart(fromYear);
+	const toD = safeYearToDateEnd(toYear);
+	if (fromD || toD)
+		parts.push(`Date range: ${fromYear || "…"}–${toYear || "…"}`);
 
-  status.innerText = parts.length ? parts.join(" • ") : "Searching...";
+	status.innerText = parts.length ? parts.join(" • ") : "Searching...";
 
-  await loadMore();
+	await loadMore();
 }
 
 // ---------- FILTER + SORT BUILDERS ----------
 
 function buildFilterString() {
-  const filters = [];
+	const filters = [];
 
-  const titleTerm = document.getElementById("titleTerm").value.trim();
-  const abstractTerm = document.getElementById("abstractTerm").value.trim();
+	const titleTerm = document.getElementById("titleTerm").value.trim();
+	const abstractTerm = document.getElementById("abstractTerm").value.trim();
 
-  const fromYear = document.getElementById("fromYear").value;
-  const toYear = document.getElementById("toYear").value;
+	const fromYear = document.getElementById("fromYear").value;
+	const toYear = document.getElementById("toYear").value;
 
-  // Narrow text filters (documented as convenience filters)
-  if (titleTerm) filters.push(`title.search:${titleTerm}`);
-  if (abstractTerm) filters.push(`abstract.search:${abstractTerm}`);
+	// Narrow text filters (documented as convenience filters)
+	if (titleTerm) filters.push(`title.search:${titleTerm}`);
+	if (abstractTerm) filters.push(`abstract.search:${abstractTerm}`);
 
-  // Date range using from_publication_date / to_publication_date
-  const fromD = safeYearToDateStart(fromYear);
-  const toD = safeYearToDateEnd(toYear);
-  if (fromD) filters.push(`from_publication_date:${fromD}`);
-  if (toD) filters.push(`to_publication_date:${toD}`);
+	// Date range using from_publication_date / to_publication_date
+	const fromD = safeYearToDateStart(fromYear);
+	const toD = safeYearToDateEnd(toYear);
+	if (fromD) filters.push(`from_publication_date:${fromD}`);
+	if (toD) filters.push(`to_publication_date:${toD}`);
 
-  // Author filter
-  if (resolvedAuthorId)
-    filters.push(`authorships.author.id:${resolvedAuthorId}`);
+	// Author filter
+	if (resolvedAuthorId)
+		filters.push(`authorships.author.id:${resolvedAuthorId}`);
 
-  // Source filter (primary location source)
-  if (resolvedSourceId)
-    filters.push(`primary_location.source.id:${resolvedSourceId}`);
+	// Source filter (primary location source)
+	if (resolvedSourceId)
+		filters.push(`primary_location.source.id:${resolvedSourceId}`);
 
-  return filters.join(",");
+	return filters.join(",");
 }
 
 function buildSortValue() {
-  // Sort docs: publication_date, cited_by_count, relevance_score (only when searching)
-  if (currentSort === "date_desc") return "publication_date:desc";
-  if (currentSort === "date_asc") return "publication_date:asc";
-  if (currentSort === "cite_desc") return "cited_by_count:desc";
-  if (currentSort === "cite_asc") return "cited_by_count:asc";
-  return ""; // default behavior
+	// Sort docs: publication_date, cited_by_count, relevance_score (only when searching)
+	if (currentSort === "date_desc") return "publication_date:desc";
+	if (currentSort === "date_asc") return "publication_date:asc";
+	if (currentSort === "cite_desc") return "cited_by_count:desc";
+	if (currentSort === "cite_asc") return "cited_by_count:asc";
+	return ""; // default behavior
 }
 
 // ---------- LOAD MORE ----------
 
 async function loadMore() {
-  if (isLoading || cursor === null) return;
-  isLoading = true;
+	if (isLoading || cursor === null) return;
+	isLoading = true;
 
-  const resultsBox = document.getElementById("results");
-  const status = document.getElementById("status");
+	const resultsBox = document.getElementById("results");
+	const status = document.getElementById("status");
 
-  const loader = document.createElement("div");
-  loader.className = "small-note";
-  loader.innerText = "Loading...";
-  resultsBox.appendChild(loader);
+	const loader = document.createElement("div");
+	loader.className = "small-note";
+	loader.innerText = "Loading...";
+	resultsBox.appendChild(loader);
 
-  // Build search query
-  const exactPhrase = document.getElementById("exactPhrase").value.trim();
-  const queryParts = [];
-  if (currentQuery) queryParts.push(currentQuery);
-  if (exactPhrase) queryParts.push(`"${exactPhrase}"`); // documented exact phrase behavior
+	// Build search query
+	const exactPhrase = document.getElementById("exactPhrase").value.trim();
+	const queryParts = [];
+	if (currentQuery) queryParts.push(currentQuery);
+	if (exactPhrase) queryParts.push(`"${exactPhrase}"`); // documented exact phrase behavior
 
-  const combinedQuery = queryParts.join(" ").trim();
+	const combinedQuery = queryParts.join(" ").trim();
 
-  // Build URL
-  const url = new URL("https://api.openalex.org/works");
-  url.searchParams.set("per-page", "50");
-  url.searchParams.set("cursor", cursor);
+	// Build URL
+	const url = new URL("https://api.openalex.org/works");
+	url.searchParams.set("per-page", "50");
+	url.searchParams.set("cursor", cursor);
 
-  if (combinedQuery) url.searchParams.set("search", combinedQuery);
+	if (combinedQuery) url.searchParams.set("search", combinedQuery);
 
-  const filterString = buildFilterString();
-  if (filterString) url.searchParams.set("filter", filterString);
+	const filterString = buildFilterString();
+	if (filterString) url.searchParams.set("filter", filterString);
 
-  const sortValue = buildSortValue();
-  if (sortValue) url.searchParams.set("sort", sortValue);
+	const sortValue = buildSortValue();
+	if (sortValue) url.searchParams.set("sort", sortValue);
 
-  try {
-    const res = await fetch(url.toString());
-    if (!res.ok) throw new Error(`OpenAlex request failed: ${res.status}`);
+	try {
+		const res = await fetch(url.toString());
+		if (!res.ok) throw new Error(`OpenAlex request failed: ${res.status}`);
 
-    const data = await res.json();
+		const data = await res.json();
 
-    if (totalResults === 0) totalResults = data?.meta?.count || 0;
-    cursor = data?.meta?.next_cursor || null;
+		if (totalResults === 0) totalResults = data?.meta?.count || 0;
+		cursor = data?.meta?.next_cursor || null;
 
-    loader.remove();
+		loader.remove();
 
-    const results = data?.results || [];
-    if (results.length === 0) {
-      status.innerText = totalResults
-        ? `Loaded ${loadedResults} of ${totalResults}`
-        : "No results found.";
-      cursor = null;
-      removeLoadMore();
-      return;
-    }
+		const results = data?.results || [];
+		if (results.length === 0) {
+			status.innerText = totalResults
+				? `Loaded ${loadedResults} of ${totalResults}`
+				: "No results found.";
+			cursor = null;
+			removeLoadMore();
+			return;
+		}
 
-    results.forEach(renderWorkCard);
+		results.forEach(renderWorkCard);
 
-    status.innerText = `Loaded ${loadedResults} of ${totalResults}`;
+		status.innerText = `Loaded ${loadedResults} of ${totalResults}`;
 
-    if (loadedResults < totalResults && cursor) {
-      ensureLoadMore();
-    } else {
-      status.innerText = `All ${totalResults} results loaded`;
-      cursor = null;
-      removeLoadMore();
-    }
-  } catch (err) {
-    console.error(err);
-    loader.remove();
-    status.innerText = "Error loading results (check console).";
-  } finally {
-    isLoading = false;
-  }
+		if (loadedResults < totalResults && cursor) {
+			ensureLoadMore();
+		} else {
+			status.innerText = `All ${totalResults} results loaded`;
+			cursor = null;
+			removeLoadMore();
+		}
+	} catch (err) {
+		console.error(err);
+		loader.remove();
+		status.innerText = "Error loading results (check console).";
+	} finally {
+		isLoading = false;
+	}
 }
 
 // ---------- RENDER WORK ----------
 
 function renderWorkCard(paper) {
-  const resultsBox = document.getElementById("results");
+	const resultsBox = document.getElementById("results");
 
-  const id = paper.id;
-  const title = paper.title || "Untitled";
-  const year = paper.publication_year || "Unknown";
-  const pubDate = paper.publication_date || "";
+	const id = paper.id;
+	const title = paper.title || "Untitled";
+	const year = paper.publication_year || "Unknown";
+	const pubDate = paper.publication_date || "";
 
-  const authors =
-    paper.authorships
-      ?.slice(0, 6)
-      .map((a) => a.author?.display_name)
-      .filter(Boolean)
-      .join(", ") || "Unknown";
+	const authors =
+		paper.authorships
+			?.slice(0, 6)
+			.map((a) => a.author?.display_name)
+			.filter(Boolean)
+			.join(", ") || "Unknown";
 
-  const doi = paper.doi ? paper.doi.replace("https://doi.org/", "") : "";
-  const citations =
-    typeof paper.cited_by_count === "number" ? paper.cited_by_count : null;
+	const doi = paper.doi ? paper.doi.replace("https://doi.org/", "") : "";
+	const citations =
+		typeof paper.cited_by_count === "number" ? paper.cited_by_count : null;
 
-  const fullAbstract = paper.abstract_inverted_index
-    ? reconstructAbstract(paper.abstract_inverted_index)
-    : "";
+	const fullAbstract = paper.abstract_inverted_index
+		? reconstructAbstract(paper.abstract_inverted_index)
+		: "";
 
-  const abstractToShow = fullAbstract
-    ? fullAbstract.length > 700
-      ? fullAbstract.slice(0, 700) + "…"
-      : fullAbstract
-    : "Abstract not available";
+	const abstractToShow = fullAbstract
+		? fullAbstract.length > 700
+			? `${fullAbstract.slice(0, 700)}…`
+			: fullAbstract
+		: "Abstract not available";
 
-  const card = document.createElement("div");
-  card.className = "card";
-  card.style.position = "relative";
+	const card = document.createElement("div");
+	card.className = "card";
+	card.style.position = "relative";
 
-  // Bookmark button (hover)
-  const bookmarkBtn = document.createElement("div");
-  bookmarkBtn.innerHTML = "🔖";
-  bookmarkBtn.style.position = "absolute";
-  bookmarkBtn.style.top = "10px";
-  bookmarkBtn.style.right = "10px";
-  bookmarkBtn.style.cursor = "pointer";
-  bookmarkBtn.style.opacity = "0";
-  bookmarkBtn.style.fontSize = "18px";
+	// Bookmark button (hover)
+	const bookmarkBtn = document.createElement("div");
+	bookmarkBtn.innerHTML = "🔖";
+	bookmarkBtn.style.position = "absolute";
+	bookmarkBtn.style.top = "10px";
+	bookmarkBtn.style.right = "10px";
+	bookmarkBtn.style.cursor = "pointer";
+	bookmarkBtn.style.opacity = "0";
+	bookmarkBtn.style.fontSize = "18px";
 
-  const bookmarks = getBookmarks();
-  if (bookmarks.find((b) => b.id === id)) {
-    bookmarkBtn.style.color = "var(--accent-bookmarked)";
-    bookmarkBtn.style.opacity = "1";
-  }
+	const bookmarks = getBookmarks();
+	if (bookmarks.find((b) => b.id === id)) {
+		bookmarkBtn.style.color = "var(--accent-bookmarked)";
+		bookmarkBtn.style.opacity = "1";
+	}
 
-  card.onmouseenter = () => (bookmarkBtn.style.opacity = "1");
-  card.onmouseleave = () => {
-    if (!bookmarkBtn.style.color) bookmarkBtn.style.opacity = "0";
-  };
+	card.onmouseenter = () => {
+		bookmarkBtn.style.opacity = "1";
+	};
+	card.onmouseleave = () => {
+		if (!bookmarkBtn.style.color) bookmarkBtn.style.opacity = "0";
+	};
 
-  bookmarkBtn.onclick = () =>
-    toggleBookmark(
-      {
-        id,
-        title,
-        year,
-        publication_date: pubDate,
-        authors,
-        doi,
-        cited_by_count: citations,
-        abstract: fullAbstract || "Abstract not available"
-      },
-      bookmarkBtn
-    );
+	bookmarkBtn.onclick = () =>
+		toggleBookmark(
+			{
+				id,
+				title,
+				year,
+				publication_date: pubDate,
+				authors,
+				doi,
+				cited_by_count: citations,
+				abstract: fullAbstract || "Abstract not available",
+			},
+			bookmarkBtn,
+		);
 
-  card.innerHTML = `
+	card.innerHTML = `
     <h3>${title}</h3>
     <div class="meta"><b>Year:</b> ${year}${
-    pubDate ? ` <span style="color:var(--text-3)">(${pubDate})</span>` : ""
-  }</div>
+			pubDate ? ` <span style="color:var(--text-3)">(${pubDate})</span>` : ""
+		}</div>
     <div class="meta"><b>Authors:</b> ${authors}</div>
     ${
-      citations !== null
-        ? `<div class="meta"><b>Citations:</b> ${citations}</div>`
-        : ""
-    }
+			citations !== null
+				? `<div class="meta"><b>Citations:</b> ${citations}</div>`
+				: ""
+		}
     ${
-      doi
-        ? `<div class="meta"><b>DOI:</b> <a href="https://doi.org/${doi}" target="_blank">${doi}</a></div>`
-        : ""
-    }
+			doi
+				? `<div class="meta"><b>DOI:</b> <a href="https://doi.org/${doi}" target="_blank">${doi}</a></div>`
+				: ""
+		}
     <p>${abstractToShow}</p>
   `;
 
-  card.appendChild(bookmarkBtn);
-  resultsBox.appendChild(card);
+	card.appendChild(bookmarkBtn);
+	resultsBox.appendChild(card);
 
-  loadedResults++;
+	loadedResults++;
 }
 
 function escapeHtml(value) {
-  return String(value || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	return String(value || "")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
 }
 
 function normalizeGoogleLink(link) {
-  return String(link || "").replace(/#.*$/, "").trim();
+	return String(link || "")
+		.replace(/#.*$/, "")
+		.trim();
 }
 
 function extractHostname(link) {
-  try {
-    return new URL(link).hostname.replace(/^www\./, "");
-  } catch (error) {
-    return "";
-  }
+	try {
+		return new URL(link).hostname.replace(/^www\./, "");
+	} catch (_error) {
+		return "";
+	}
 }
 
 const PUBLIC_DOMAIN_SITES = [
-  "archive.org",
-  "gutenberg.org",
-  "hathitrust.org",
-  "loc.gov",
-  "openlibrary.org",
-  "standardebooks.org",
-  "wikisource.org"
+	"archive.org",
+	"gutenberg.org",
+	"hathitrust.org",
+	"loc.gov",
+	"openlibrary.org",
+	"standardebooks.org",
+	"wikisource.org",
 ];
 
 function isPublicDomainHost(hostname) {
-  if (!hostname) return false;
-  return PUBLIC_DOMAIN_SITES.some(
-    (site) => hostname === site || hostname.endsWith(`.${site}`)
-  );
+	if (!hostname) return false;
+	return PUBLIC_DOMAIN_SITES.some(
+		(site) => hostname === site || hostname.endsWith(`.${site}`),
+	);
 }
 
 function normalizeDoiValue(doi) {
-  if (!doi) return "";
-  return String(doi).replace(/^https?:\/\/doi\.org\//i, "").trim();
+	if (!doi) return "";
+	return String(doi)
+		.replace(/^https?:\/\/doi\.org\//i, "")
+		.trim();
 }
 
 function buildGoogleQueries(title, firstAuthor, doi) {
-  const baseParts = [];
-  if (title) baseParts.push(`"${title}"`);
-  if (firstAuthor) baseParts.push(`"${firstAuthor}"`);
+	const baseParts = [];
+	if (title) baseParts.push(`"${title}"`);
+	if (firstAuthor) baseParts.push(`"${firstAuthor}"`);
 
-  const normalizedDoi = normalizeDoiValue(doi);
-  const baseQuery = baseParts.join(" ").trim();
-  const publicDomainSitesQuery = PUBLIC_DOMAIN_SITES.map(
-    (site) => `site:${site}`
-  ).join(" OR ");
-  const publicDomainQuery = baseQuery
-    ? `${baseQuery} (${publicDomainSitesQuery})`
-    : "";
+	const normalizedDoi = normalizeDoiValue(doi);
+	const baseQuery = baseParts.join(" ").trim();
+	const publicDomainSitesQuery = PUBLIC_DOMAIN_SITES.map(
+		(site) => `site:${site}`,
+	).join(" OR ");
+	const publicDomainQuery = baseQuery
+		? `${baseQuery} (${publicDomainSitesQuery})`
+		: "";
 
-  return [
-    {
-      type: "primary",
-      q: baseQuery,
-      exactTerms: title || ""
-    },
-    {
-      type: "citations",
-      q: baseQuery,
-      orTerms: "cited references bibliography"
-    },
-    {
-      type: "public_domain",
-      q: publicDomainQuery,
-      exactTerms: title || ""
-    },
-    {
-      type: "doi",
-      q: normalizedDoi,
-      exactTerms: normalizedDoi
-    }
-  ].filter((query) => query.q);
+	return [
+		{
+			type: "primary",
+			q: baseQuery,
+			exactTerms: title || "",
+		},
+		{
+			type: "citations",
+			q: baseQuery,
+			orTerms: "cited references bibliography",
+		},
+		{
+			type: "public_domain",
+			q: publicDomainQuery,
+			exactTerms: title || "",
+		},
+		{
+			type: "doi",
+			q: normalizedDoi,
+			exactTerms: normalizedDoi,
+		},
+	].filter((query) => query.q);
 }
 
 function scoreGoogleItem(item, title) {
-  const titleLower = String(title || "").toLowerCase();
-  const itemTitle = String(item?.title || "").toLowerCase();
-  const snippet = String(item?.snippet || "").toLowerCase();
-  const link = String(item?.link || "").toLowerCase();
-  const hostname = extractHostname(link).toLowerCase();
+	const titleLower = String(title || "").toLowerCase();
+	const itemTitle = String(item?.title || "").toLowerCase();
+	const snippet = String(item?.snippet || "").toLowerCase();
+	const link = String(item?.link || "").toLowerCase();
+	const hostname = extractHostname(link).toLowerCase();
 
-  let score = 0;
-  if (titleLower && itemTitle.includes(titleLower)) score += 4;
-  if (titleLower && snippet.includes(titleLower)) score += 2;
-  if (isPublicDomainHost(hostname)) score += 3;
-  if (snippet.includes("public domain") || snippet.includes("full text")) {
-    score += 1;
-  }
-  if (link.includes(".pdf")) score -= 1;
-  return score;
+	let score = 0;
+	if (titleLower && itemTitle.includes(titleLower)) score += 4;
+	if (titleLower && snippet.includes(titleLower)) score += 2;
+	if (isPublicDomainHost(hostname)) score += 3;
+	if (snippet.includes("public domain") || snippet.includes("full text")) {
+		score += 1;
+	}
+	if (link.includes(".pdf")) score -= 1;
+	return score;
 }
 
 async function fetchGoogleItems({ apiKey, cx, query }) {
-  const url = new URL("https://www.googleapis.com/customsearch/v1");
-  url.searchParams.set("key", apiKey);
-  url.searchParams.set("cx", cx);
-  url.searchParams.set("q", query.q);
-  url.searchParams.set("num", "10");
+	const url = new URL("https://www.googleapis.com/customsearch/v1");
+	url.searchParams.set("key", apiKey);
+	url.searchParams.set("cx", cx);
+	url.searchParams.set("q", query.q);
+	url.searchParams.set("num", "10");
 
-  if (query.exactTerms) url.searchParams.set("exactTerms", query.exactTerms);
-  if (query.orTerms) url.searchParams.set("orTerms", query.orTerms);
+	if (query.exactTerms) url.searchParams.set("exactTerms", query.exactTerms);
+	if (query.orTerms) url.searchParams.set("orTerms", query.orTerms);
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    return { items: [], status: `error_${res.status}` };
-  }
+	const res = await fetch(url.toString());
+	if (!res.ok) {
+		return { items: [], status: `error_${res.status}` };
+	}
 
-  const data = await res.json();
-  return { items: data?.items || [], status: "ok" };
+	const data = await res.json();
+	return { items: data?.items || [], status: "ok" };
 }
 
 async function fetchGoogleSourceLinks(entry) {
-  const { apiKey, cx } = getGoogleSettings();
-  if (!apiKey || !cx) {
-    return { links: [], status: "missing_settings" };
-  }
+	const { apiKey, cx } = getGoogleSettings();
+	if (!apiKey || !cx) {
+		return { links: [], status: "missing_settings" };
+	}
 
-  const title = entry.title || "";
-  const firstAuthor = (entry.authors || "").split(",")[0]?.trim();
-  const queries = buildGoogleQueries(title, firstAuthor, entry.doi);
+	const title = entry.title || "";
+	const firstAuthor = (entry.authors || "").split(",")[0]?.trim();
+	const queries = buildGoogleQueries(title, firstAuthor, entry.doi);
 
-  if (queries.length === 0) {
-    return { links: [], status: "missing_query" };
-  }
+	if (queries.length === 0) {
+		return { links: [], status: "missing_query" };
+	}
 
-  try {
-    const aggregated = new Map();
-    let status = "ok";
+	try {
+		const aggregated = new Map();
+		let status = "ok";
 
-    for (const query of queries) {
-      const result = await fetchGoogleItems({ apiKey, cx, query });
-      if (result.status !== "ok") status = result.status;
+		for (const query of queries) {
+			const result = await fetchGoogleItems({ apiKey, cx, query });
+			if (result.status !== "ok") status = result.status;
 
-      result.items.forEach((item) => {
-        const link = normalizeGoogleLink(item?.link || "");
-        if (!link) return;
+			result.items.forEach((item) => {
+				const link = normalizeGoogleLink(item?.link || "");
+				if (!link) return;
 
-        const existing = aggregated.get(link);
-        const score = scoreGoogleItem(item, title);
-        const entryData = {
-          url: link,
-          title: item?.title || extractHostname(link) || link,
-          score,
-          source: query.type
-        };
+				const existing = aggregated.get(link);
+				const score = scoreGoogleItem(item, title);
+				const entryData = {
+					url: link,
+					title: item?.title || extractHostname(link) || link,
+					score,
+					source: query.type,
+				};
 
-        if (!existing || entryData.score > existing.score) {
-          aggregated.set(link, entryData);
-        }
-      });
-    }
+				if (!existing || entryData.score > existing.score) {
+					aggregated.set(link, entryData);
+				}
+			});
+		}
 
-    const links = Array.from(aggregated.values())
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+		const links = Array.from(aggregated.values())
+			.sort((a, b) => b.score - a.score)
+			.slice(0, 5);
 
-    return { links, status };
-  } catch (error) {
-    console.error(error);
-    return { links: [], status: "error_network" };
-  }
+		return { links, status };
+	} catch (error) {
+		console.error(error);
+		return { links: [], status: "error_network" };
+	}
 }
 
 function renderSourcePills(links) {
-  if (!links || links.length === 0) return "";
-  const normalizedLinks = links.map((link) =>
-    typeof link === "string" ? { url: link, title: link } : link
-  );
+	if (!links || links.length === 0) return "";
+	const normalizedLinks = links.map((link) =>
+		typeof link === "string" ? { url: link, title: link } : link,
+	);
 
-  return `
+	return `
     <div class="pdf-pills">
       ${normalizedLinks
-        .map((link, index) => {
-          const label = link.title || `Source ${index + 1}`;
-          return `<a class="pdf-pill" href="${link.url}" target="_blank" rel="noopener">${escapeHtml(
-            label
-          )}</a>`;
-        })
-        .join("")}
+				.map((link, index) => {
+					const label = link.title || `Source ${index + 1}`;
+					return `<a class="pdf-pill" href="${link.url}" target="_blank" rel="noopener">${escapeHtml(
+						label,
+					)}</a>`;
+				})
+				.join("")}
     </div>
   `;
 }
@@ -1249,130 +1309,133 @@ function renderSourcePills(links) {
 // ---------- LOAD MORE BUTTON ----------
 
 function ensureLoadMore() {
-  const resultsBox = document.getElementById("results");
-  let btn = document.getElementById("loadMore");
-  if (btn) return;
+	const resultsBox = document.getElementById("results");
+	let btn = document.getElementById("loadMore");
+	if (btn) return;
 
-  btn = document.createElement("button");
-  btn.id = "loadMore";
-  btn.innerText = "Load More Results";
-  btn.onclick = loadMore;
-  btn.style.display = "block";
-  btn.style.margin = "20px auto";
-  resultsBox.appendChild(btn);
+	btn = document.createElement("button");
+	btn.id = "loadMore";
+	btn.innerText = "Load More Results";
+	btn.onclick = loadMore;
+	btn.style.display = "block";
+	btn.style.margin = "20px auto";
+	resultsBox.appendChild(btn);
 }
 
 function removeLoadMore() {
-  const btn = document.getElementById("loadMore");
-  if (btn) btn.remove();
+	const btn = document.getElementById("loadMore");
+	if (btn) btn.remove();
 }
 
 // ---------- BOOKMARKS ----------
 
 async function toggleBookmark(entry, btn) {
-  let bookmarks = getBookmarks();
-  const exists = bookmarks.find((b) => b.id === entry.id);
+	let bookmarks = getBookmarks();
+	const exists = bookmarks.find((b) => b.id === entry.id);
 
-  if (exists) {
-    bookmarks = bookmarks.filter((b) => b.id !== entry.id);
-    btn.style.color = "";
-  } else {
-    const pendingEntry = {
-      ...entry,
-      createdAt: Date.now(),
-      googleLinks: [],
-      googleLinksStatus: "pending",
-      note: ""
-    };
-    bookmarks.push(pendingEntry);
-    btn.style.color = "var(--accent-bookmarked)";
-    btn.style.opacity = "1";
-  }
+	if (exists) {
+		bookmarks = bookmarks.filter((b) => b.id !== entry.id);
+		btn.style.color = "";
+	} else {
+		const pendingEntry = {
+			...entry,
+			createdAt: Date.now(),
+			googleLinks: [],
+			googleLinksStatus: "pending",
+			note: "",
+		};
+		bookmarks.push(pendingEntry);
+		btn.style.color = "var(--accent-bookmarked)";
+		btn.style.opacity = "1";
+	}
 
-  saveBookmarks(bookmarks);
-  renderBookmarkList();
+	saveBookmarks(bookmarks);
+	renderBookmarkList();
 
-  if (!exists) {
-    const { links, status } = await fetchGoogleSourceLinks(entry);
-    const updated = getBookmarks().map((b) =>
-      b.id === entry.id
-        ? {
-            ...b,
-            googleLinks: links,
-            googleLinksStatus: status
-          }
-        : b
-    );
-    saveBookmarks(updated);
-    renderBookmarkList();
+	if (!exists) {
+		const { links, status } = await fetchGoogleSourceLinks(entry);
+		const updated = getBookmarks().map((b) =>
+			b.id === entry.id
+				? {
+						...b,
+						googleLinks: links,
+						googleLinksStatus: status,
+					}
+				: b,
+		);
+		saveBookmarks(updated);
+		renderBookmarkList();
 
-    // Auto-generate summary or abstraction if enabled
-    const settings = getOpenAISettings();
-    if (settings.apiKey && (settings.autogenerate || settings.generateAbstractions)) {
-      generateResearchNote(entry.id);
-    }
-  }
+		// Auto-generate summary or abstraction if enabled
+		const settings = getOpenAISettings();
+		if (
+			settings.apiKey &&
+			(settings.autogenerate || settings.generateAbstractions)
+		) {
+			generateResearchNote(entry.id);
+		}
+	}
 }
 
 async function refreshBookmarkLinks(bookmarkId) {
-  const bookmarks = getBookmarks();
-  const entry = bookmarks.find((b) => b.id === bookmarkId);
-  if (!entry) return;
+	const bookmarks = getBookmarks();
+	const entry = bookmarks.find((b) => b.id === bookmarkId);
+	if (!entry) return;
 
-  const pendingBookmarks = bookmarks.map((b) =>
-    b.id === bookmarkId
-      ? {
-          ...b,
-          googleLinks: [],
-          googleLinksStatus: "pending"
-        }
-      : b
-  );
-  saveBookmarks(pendingBookmarks);
-  renderBookmarkList();
+	const pendingBookmarks = bookmarks.map((b) =>
+		b.id === bookmarkId
+			? {
+					...b,
+					googleLinks: [],
+					googleLinksStatus: "pending",
+				}
+			: b,
+	);
+	saveBookmarks(pendingBookmarks);
+	renderBookmarkList();
 
-  const { links, status } = await fetchGoogleSourceLinks(entry);
-  const updated = getBookmarks().map((b) =>
-    b.id === bookmarkId
-      ? {
-          ...b,
-          googleLinks: links,
-          googleLinksStatus: status
-        }
-      : b
-  );
-  saveBookmarks(updated);
-  renderBookmarkList();
+	const { links, status } = await fetchGoogleSourceLinks(entry);
+	const updated = getBookmarks().map((b) =>
+		b.id === bookmarkId
+			? {
+					...b,
+					googleLinks: links,
+					googleLinksStatus: status,
+				}
+			: b,
+	);
+	saveBookmarks(updated);
+	renderBookmarkList();
 }
 
 // ---------- LIBRARY DRAWER ----------
 
 function createLibraryDrawer() {
-  const overlay = document.createElement("div");
-  overlay.id = "libraryDrawerOverlay";
-  overlay.style.position = "fixed";
-  overlay.style.inset = "0";
-  overlay.style.background = "var(--surface-overlay)";
-  overlay.style.display = "none";
-  overlay.style.zIndex = "998";
-  overlay.onclick = closeLibraryDrawer;
-  document.body.appendChild(overlay);
+	const overlay = document.createElement("div");
+	overlay.id = "libraryDrawerOverlay";
+	overlay.style.position = "fixed";
+	overlay.style.inset = "0";
+	overlay.style.background = "var(--surface-overlay)";
+	overlay.style.display = "none";
+	overlay.style.zIndex = "998";
+	overlay.onclick = closeLibraryDrawer;
+	document.body.appendChild(overlay);
 
-  const drawer = document.createElement("div");
-  drawer.id = "libraryDrawer";
-  drawer.style.position = "fixed";
-  drawer.style.right = "-420px";
-  drawer.style.top = "0";
-  drawer.style.width = "400px";
-  drawer.style.height = "100%";
-  drawer.style.background = "var(--surface-1)";
-  drawer.style.boxShadow = "-2px 0 8px var(--shadow-color)";
-  drawer.style.padding = "15px";
-  drawer.style.overflowY = "auto";
-  drawer.style.transition = "0.3s";
-  drawer.style.zIndex = "999";
+	const drawer = document.createElement("div");
+	drawer.id = "libraryDrawer";
+	drawer.style.position = "fixed";
+	drawer.style.right = "-420px";
+	drawer.style.top = "0";
+	drawer.style.width = "400px";
+	drawer.style.height = "100%";
+	drawer.style.background = "var(--surface-1)";
+	drawer.style.boxShadow = "-2px 0 8px var(--shadow-color)";
+	drawer.style.padding = "15px";
+	drawer.style.overflowY = "auto";
+	drawer.style.transition = "0.3s";
+	drawer.style.zIndex = "999";
 
-  drawer.innerHTML = `
+	drawer.innerHTML = `
     <div class="drawer-header">
       <button type="button" class="drawer-icon-button" onclick="closeLibraryDrawer()">✕</button>
       <h2 id="libraryDrawerTitle">Library</h2>
@@ -1385,50 +1448,50 @@ function createLibraryDrawer() {
     <div id="viewContainer"></div>
   `;
 
-  drawer.onclick = (e) => e.stopPropagation();
-  document.body.appendChild(drawer);
+	drawer.onclick = (e) => e.stopPropagation();
+	document.body.appendChild(drawer);
 
-  renderCurrentView();
+	renderCurrentView();
 }
 
 function openLibraryDrawer() {
-  document.getElementById("libraryDrawer").style.right = "0px";
-  document.getElementById("libraryDrawerOverlay").style.display = "block";
+	document.getElementById("libraryDrawer").style.right = "0px";
+	document.getElementById("libraryDrawerOverlay").style.display = "block";
 }
 
 function closeLibraryDrawer() {
-  document.getElementById("libraryDrawer").style.right = "-420px";
-  document.getElementById("libraryDrawerOverlay").style.display = "none";
+	document.getElementById("libraryDrawer").style.right = "-420px";
+	document.getElementById("libraryDrawerOverlay").style.display = "none";
 }
 
 // ---------- SETTINGS DRAWER ----------
 
 function createSettingsDrawer() {
-  const overlay = document.createElement("div");
-  overlay.id = "settingsDrawerOverlay";
-  overlay.style.position = "fixed";
-  overlay.style.inset = "0";
-  overlay.style.background = "var(--surface-overlay)";
-  overlay.style.display = "none";
-  overlay.style.zIndex = "998";
-  overlay.onclick = closeSettingsDrawer;
-  document.body.appendChild(overlay);
+	const overlay = document.createElement("div");
+	overlay.id = "settingsDrawerOverlay";
+	overlay.style.position = "fixed";
+	overlay.style.inset = "0";
+	overlay.style.background = "var(--surface-overlay)";
+	overlay.style.display = "none";
+	overlay.style.zIndex = "998";
+	overlay.onclick = closeSettingsDrawer;
+	document.body.appendChild(overlay);
 
-  const drawer = document.createElement("div");
-  drawer.id = "settingsDrawer";
-  drawer.style.position = "fixed";
-  drawer.style.right = "-420px";
-  drawer.style.top = "0";
-  drawer.style.width = "400px";
-  drawer.style.height = "100%";
-  drawer.style.background = "var(--surface-1)";
-  drawer.style.boxShadow = "-2px 0 8px var(--shadow-color)";
-  drawer.style.padding = "15px";
-  drawer.style.overflowY = "auto";
-  drawer.style.transition = "0.3s";
-  drawer.style.zIndex = "999";
+	const drawer = document.createElement("div");
+	drawer.id = "settingsDrawer";
+	drawer.style.position = "fixed";
+	drawer.style.right = "-420px";
+	drawer.style.top = "0";
+	drawer.style.width = "400px";
+	drawer.style.height = "100%";
+	drawer.style.background = "var(--surface-1)";
+	drawer.style.boxShadow = "-2px 0 8px var(--shadow-color)";
+	drawer.style.padding = "15px";
+	drawer.style.overflowY = "auto";
+	drawer.style.transition = "0.3s";
+	drawer.style.zIndex = "999";
 
-  drawer.innerHTML = `
+	drawer.innerHTML = `
     <div class="drawer-header">
       <button type="button" class="drawer-icon-button" onclick="closeSettingsDrawer()">✕</button>
       <h2>Settings</h2>
@@ -1568,70 +1631,72 @@ function createSettingsDrawer() {
     </div>
   `;
 
-  drawer.onclick = (e) => e.stopPropagation();
-  document.body.appendChild(drawer);
+	drawer.onclick = (e) => e.stopPropagation();
+	document.body.appendChild(drawer);
 
-  // Initialize settings after drawer is created
-  initializeSettings();
+	// Initialize settings after drawer is created
+	initializeSettings();
 }
 
 function openSettingsDrawer() {
-  document.getElementById("settingsDrawer").style.right = "0px";
-  document.getElementById("settingsDrawerOverlay").style.display = "block";
+	document.getElementById("settingsDrawer").style.right = "0px";
+	document.getElementById("settingsDrawerOverlay").style.display = "block";
 }
 
 function closeSettingsDrawer() {
-  document.getElementById("settingsDrawer").style.right = "-420px";
-  document.getElementById("settingsDrawerOverlay").style.display = "none";
+	document.getElementById("settingsDrawer").style.right = "-420px";
+	document.getElementById("settingsDrawerOverlay").style.display = "none";
 }
 
 function switchView(view) {
-  currentView = view;
+	currentView = view;
 
-  // Update nav tabs
-  const tabs = document.querySelectorAll(".nav-tab");
-  tabs.forEach(tab => {
-    if (tab.dataset.view === view) {
-      tab.classList.add("active");
-    } else {
-      tab.classList.remove("active");
-    }
-  });
+	// Update nav tabs
+	const tabs = document.querySelectorAll(".nav-tab");
+	tabs.forEach((tab) => {
+		if (tab.dataset.view === view) {
+			tab.classList.add("active");
+		} else {
+			tab.classList.remove("active");
+		}
+	});
 
-  renderCurrentView();
+	renderCurrentView();
 }
 
 function renderCurrentView() {
-  if (currentView === "bookmarks") {
-    renderBookmarksView();
-  } else if (currentView === "projects") {
-    renderProjectsView();
-  }
+	if (currentView === "bookmarks") {
+		renderBookmarksView();
+	} else if (currentView === "projects") {
+		renderProjectsView();
+	}
 }
 
 function renderBookmarksView() {
-  const container = document.getElementById("viewContainer");
-  if (!container) return;
+	const container = document.getElementById("viewContainer");
+	if (!container) return;
 
-  const drawerTitle = document.getElementById("libraryDrawerTitle");
-  const activeProject = activeProjectId ? getProjects().find(p => p.id === activeProjectId) : null;
-  
-  if (drawerTitle) {
-    if (activeProject) {
-      drawerTitle.innerHTML = `Bookmarks <span class="project-active-badge">${activeProject.name}</span>`;
-    } else {
-      drawerTitle.innerText = "Bookmarks";
-    }
-  }
+	const drawerTitle = document.getElementById("libraryDrawerTitle");
+	const activeProject = activeProjectId
+		? getProjects().find((p) => p.id === activeProjectId)
+		: null;
 
-  const actionBtn = document.getElementById("libraryDrawerActionBtn");
-  if (actionBtn) {
-    actionBtn.innerText = "Export";
-    actionBtn.onclick = exportBookmarks;
-    actionBtn.style.display = "block";
-  }
+	if (drawerTitle) {
+		if (activeProject) {
+			drawerTitle.innerHTML = `Bookmarks <span class="project-active-badge">${activeProject.name}</span>`;
+		} else {
+			drawerTitle.innerText = "Bookmarks";
+		}
+	}
 
-  container.innerHTML = `
+	const actionBtn = document.getElementById("libraryDrawerActionBtn");
+	if (actionBtn) {
+		actionBtn.innerText = "Export";
+		actionBtn.onclick = exportBookmarks;
+		actionBtn.style.display = "block";
+	}
+
+	container.innerHTML = `
     <div class="view-toolbar">
       <input
         id="bookmarkFilter"
@@ -1654,603 +1719,625 @@ function renderBookmarksView() {
     <div id="bookmarkList"></div>
   `;
 
-  const filterInput = container.querySelector("#bookmarkFilter");
-  const sortSelect = container.querySelector("#bookmarkSort");
+	const filterInput = container.querySelector("#bookmarkFilter");
+	const sortSelect = container.querySelector("#bookmarkSort");
 
-  if (filterInput) {
-    filterInput.value = bookmarkFilterTerm;
-    filterInput.addEventListener("input", (event) => {
-      bookmarkFilterTerm = event.target.value;
-      renderBookmarkList();
-    });
-  }
+	if (filterInput) {
+		filterInput.value = bookmarkFilterTerm;
+		filterInput.addEventListener("input", (event) => {
+			bookmarkFilterTerm = event.target.value;
+			renderBookmarkList();
+		});
+	}
 
-  if (sortSelect) {
-    sortSelect.value = bookmarkSortOrder;
-    sortSelect.addEventListener("change", (event) => {
-      bookmarkSortOrder = event.target.value;
-      renderBookmarkList();
-    });
-  }
+	if (sortSelect) {
+		sortSelect.value = bookmarkSortOrder;
+		sortSelect.addEventListener("change", (event) => {
+			bookmarkSortOrder = event.target.value;
+			renderBookmarkList();
+		});
+	}
 
-  renderBookmarkList();
+	renderBookmarkList();
 }
 
 function renderProjectsView() {
-  const container = document.getElementById("viewContainer");
-  if (!container) return;
+	const container = document.getElementById("viewContainer");
+	if (!container) return;
 
-  const drawerTitle = document.getElementById("libraryDrawerTitle");
-  if (drawerTitle) drawerTitle.innerText = "Projects";
+	const drawerTitle = document.getElementById("libraryDrawerTitle");
+	if (drawerTitle) drawerTitle.innerText = "Projects";
 
-  const actionBtn = document.getElementById("libraryDrawerActionBtn");
-  if (actionBtn) {
-    actionBtn.innerText = "New";
-    actionBtn.onclick = showCreateProjectDialog;
-    actionBtn.style.display = "block";
-  }
+	const actionBtn = document.getElementById("libraryDrawerActionBtn");
+	if (actionBtn) {
+		actionBtn.innerText = "New";
+		actionBtn.onclick = showCreateProjectDialog;
+		actionBtn.style.display = "block";
+	}
 
-  container.innerHTML = `
+	container.innerHTML = `
     <div id="projectSummary" class="view-summary"></div>
     <div id="projectList"></div>
   `;
 
-  renderProjectList();
+	renderProjectList();
 }
 
 function showCreateProjectDialog() {
-  // Reset form
-  const form = document.getElementById('create-project-form');
-  if (form) {
-    form.reset();
-  }
-  
-  // Show modal using CSS class
-  const modal = document.getElementById('modal-create-project');
-  if (modal) {
-    modal.classList.add('is-open');
-    // Focus on the name input after modal animation
-    requestAnimationFrame(() => {
-      const nameInput = document.getElementById('project-name-input');
-      if (nameInput) nameInput.focus();
-    });
-  }
+	// Reset form
+	const form = document.getElementById("create-project-form");
+	if (form) {
+		form.reset();
+	}
+
+	// Show modal using CSS class
+	const modal = document.getElementById("modal-create-project");
+	if (modal) {
+		modal.classList.add("is-open");
+		// Focus on the name input after modal animation
+		requestAnimationFrame(() => {
+			const nameInput = document.getElementById("project-name-input");
+			if (nameInput) nameInput.focus();
+		});
+	}
 }
 
 function closeProjectModal() {
-  const modal = document.getElementById('modal-create-project');
-  if (modal) {
-    modal.classList.remove('is-open');
-  }
+	const modal = document.getElementById("modal-create-project");
+	if (modal) {
+		modal.classList.remove("is-open");
+	}
 }
 
 function showEditProjectDialog(projectId) {
-  const projects = getProjects();
-  const project = projects.find(p => p.id === projectId);
-  if (!project) return;
-  
-  const nameInput = document.getElementById('edit-project-name-input');
-  const descriptionInput = document.getElementById('edit-project-description-input');
-  const gptInstructionInput = document.getElementById('edit-project-gpt-instruction-input');
-  
-  if (nameInput) nameInput.value = project.name || '';
-  if (descriptionInput) descriptionInput.value = project.description || '';
-  if (gptInstructionInput) gptInstructionInput.value = project.gptInstruction || '';
-  
-  const modal = document.getElementById('modal-edit-project');
-  if (modal) {
-    modal.dataset.projectId = projectId;
-    modal.classList.add('is-open');
-    requestAnimationFrame(() => {
-      if (nameInput) nameInput.focus();
-    });
-  }
+	const projects = getProjects();
+	const project = projects.find((p) => p.id === projectId);
+	if (!project) return;
+
+	const nameInput = document.getElementById("edit-project-name-input");
+	const descriptionInput = document.getElementById(
+		"edit-project-description-input",
+	);
+	const gptInstructionInput = document.getElementById(
+		"edit-project-gpt-instruction-input",
+	);
+
+	if (nameInput) nameInput.value = project.name || "";
+	if (descriptionInput) descriptionInput.value = project.description || "";
+	if (gptInstructionInput)
+		gptInstructionInput.value = project.gptInstruction || "";
+
+	const modal = document.getElementById("modal-edit-project");
+	if (modal) {
+		modal.dataset.projectId = projectId;
+		modal.classList.add("is-open");
+		requestAnimationFrame(() => {
+			if (nameInput) nameInput.focus();
+		});
+	}
 }
 
 function closeEditProjectModal() {
-  const modal = document.getElementById('modal-edit-project');
-  if (modal) {
-    modal.classList.remove('is-open');
-    delete modal.dataset.projectId;
-  }
+	const modal = document.getElementById("modal-edit-project");
+	if (modal) {
+		modal.classList.remove("is-open");
+		delete modal.dataset.projectId;
+	}
 }
 
 // Handle project creation form submission
 function initializeProjectModal() {
-  const createSubmitBtn = document.getElementById('create-project-submit');
-  const createForm = document.getElementById('create-project-form');
-  const createModal = document.getElementById('modal-create-project');
-  
-  if (createSubmitBtn && createForm) {
-    createSubmitBtn.onclick = (e) => {
-      e.preventDefault();
-      
-      const nameInput = document.getElementById('project-name-input');
-      const descriptionInput = document.getElementById('project-description-input');
-      const gptInstructionInput = document.getElementById('project-gpt-instruction-input');
-      
-      const name = nameInput?.value.trim() || '';
-      const description = descriptionInput?.value.trim() || '';
-      const gptInstruction = gptInstructionInput?.value.trim() || '';
-      
-      if (!name) {
-        nameInput?.focus();
-        return;
-      }
-      
-      // Create the project
-      createProject(name, description, gptInstruction);
-      
-      // Close modal
-      closeProjectModal();
-      
-      // Render the updated project list
-      renderProjectList();
-    };
-  }
-  
-  // Close modal when clicking overlay
-  if (createModal) {
-    const overlay = createModal.querySelector('.modal__overlay');
-    if (overlay) {
-      overlay.onclick = (e) => {
-        if (e.target === overlay) {
-          closeProjectModal();
-        }
-      };
-    }
-    
-    // Handle Escape key for this specific modal
-    createModal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && createModal.classList.contains('is-open')) {
-        closeProjectModal();
-      }
-    });
-  }
-  
-  // Initialize edit project modal
-  const editSubmitBtn = document.getElementById('edit-project-submit');
-  const editForm = document.getElementById('edit-project-form');
-  const editModal = document.getElementById('modal-edit-project');
-  
-  if (editSubmitBtn && editForm) {
-    editSubmitBtn.onclick = (e) => {
-      e.preventDefault();
-      
-      const projectId = editModal?.dataset.projectId;
-      if (!projectId) return;
-      
-      const nameInput = document.getElementById('edit-project-name-input');
-      const descriptionInput = document.getElementById('edit-project-description-input');
-      const gptInstructionInput = document.getElementById('edit-project-gpt-instruction-input');
-      
-      const name = nameInput?.value.trim() || '';
-      const description = descriptionInput?.value.trim() || '';
-      const gptInstruction = gptInstructionInput?.value.trim() || '';
-      
-      if (!name) {
-        nameInput?.focus();
-        return;
-      }
-      
-      // Update the project
-      updateProject(projectId, name, description, gptInstruction);
-      
-      // Close modal
-      closeEditProjectModal();
-      
-      // Render the updated project list
-      renderProjectList();
-    };
-  }
-  
-  // Close modal when clicking overlay
-  if (editModal) {
-    const overlay = editModal.querySelector('.modal__overlay');
-    if (overlay) {
-      overlay.onclick = (e) => {
-        if (e.target === overlay) {
-          closeEditProjectModal();
-        }
-      };
-    }
-    
-    // Handle Escape key for this specific modal
-    editModal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && editModal.classList.contains('is-open')) {
-        closeEditProjectModal();
-      }
-    });
-  }
+	const createSubmitBtn = document.getElementById("create-project-submit");
+	const createForm = document.getElementById("create-project-form");
+	const createModal = document.getElementById("modal-create-project");
+
+	if (createSubmitBtn && createForm) {
+		createSubmitBtn.onclick = (e) => {
+			e.preventDefault();
+
+			const nameInput = document.getElementById("project-name-input");
+			const descriptionInput = document.getElementById(
+				"project-description-input",
+			);
+			const gptInstructionInput = document.getElementById(
+				"project-gpt-instruction-input",
+			);
+
+			const name = nameInput?.value.trim() || "";
+			const description = descriptionInput?.value.trim() || "";
+			const gptInstruction = gptInstructionInput?.value.trim() || "";
+
+			if (!name) {
+				nameInput?.focus();
+				return;
+			}
+
+			// Create the project
+			createProject(name, description, gptInstruction);
+
+			// Close modal
+			closeProjectModal();
+
+			// Render the updated project list
+			renderProjectList();
+		};
+	}
+
+	// Close modal when clicking overlay
+	if (createModal) {
+		const overlay = createModal.querySelector(".modal__overlay");
+		if (overlay) {
+			overlay.onclick = (e) => {
+				if (e.target === overlay) {
+					closeProjectModal();
+				}
+			};
+		}
+
+		// Handle Escape key for this specific modal
+		createModal.addEventListener("keydown", (e) => {
+			if (e.key === "Escape" && createModal.classList.contains("is-open")) {
+				closeProjectModal();
+			}
+		});
+	}
+
+	// Initialize edit project modal
+	const editSubmitBtn = document.getElementById("edit-project-submit");
+	const editForm = document.getElementById("edit-project-form");
+	const editModal = document.getElementById("modal-edit-project");
+
+	if (editSubmitBtn && editForm) {
+		editSubmitBtn.onclick = (e) => {
+			e.preventDefault();
+
+			const projectId = editModal?.dataset.projectId;
+			if (!projectId) return;
+
+			const nameInput = document.getElementById("edit-project-name-input");
+			const descriptionInput = document.getElementById(
+				"edit-project-description-input",
+			);
+			const gptInstructionInput = document.getElementById(
+				"edit-project-gpt-instruction-input",
+			);
+
+			const name = nameInput?.value.trim() || "";
+			const description = descriptionInput?.value.trim() || "";
+			const gptInstruction = gptInstructionInput?.value.trim() || "";
+
+			if (!name) {
+				nameInput?.focus();
+				return;
+			}
+
+			// Update the project
+			updateProject(projectId, name, description, gptInstruction);
+
+			// Close modal
+			closeEditProjectModal();
+
+			// Render the updated project list
+			renderProjectList();
+		};
+	}
+
+	// Close modal when clicking overlay
+	if (editModal) {
+		const overlay = editModal.querySelector(".modal__overlay");
+		if (overlay) {
+			overlay.onclick = (e) => {
+				if (e.target === overlay) {
+					closeEditProjectModal();
+				}
+			};
+		}
+
+		// Handle Escape key for this specific modal
+		editModal.addEventListener("keydown", (e) => {
+			if (e.key === "Escape" && editModal.classList.contains("is-open")) {
+				closeEditProjectModal();
+			}
+		});
+	}
 }
 
 function renderProjectList() {
-  const list = document.getElementById("projectList");
-  if (!list) return;
+	const list = document.getElementById("projectList");
+	if (!list) return;
 
-  const projects = getProjects();
-  const summary = document.getElementById("projectSummary");
+	const projects = getProjects();
+	const summary = document.getElementById("projectSummary");
 
-  if (summary) {
-    summary.innerText = `${projects.length} project${projects.length !== 1 ? 's' : ''}`;
-  }
+	if (summary) {
+		summary.innerText = `${projects.length} project${projects.length !== 1 ? "s" : ""}`;
+	}
 
-  list.innerHTML = "";
+	list.innerHTML = "";
 
-  // Clear tracking variables when re-rendering
-  currentExpandedProjectDetails = null;
-  currentExpandedProjectButton = null;
+	// Clear tracking variables when re-rendering
+	currentExpandedProjectDetails = null;
+	currentExpandedProjectButton = null;
 
-  if (projects.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "small-note";
-    empty.innerText = "No projects yet. Click 'New' to create one.";
-    list.appendChild(empty);
-    return;
-  }
+	if (projects.length === 0) {
+		const empty = document.createElement("div");
+		empty.className = "small-note";
+		empty.innerText = "No projects yet. Click 'New' to create one.";
+		list.appendChild(empty);
+		return;
+	}
 
-  projects.forEach((project) => {
-    const item = document.createElement("div");
-    item.className = "project-item item-card";
+	projects.forEach((project) => {
+		const item = document.createElement("div");
+		item.className = "project-item item-card";
 
-    const bookmarks = getBookmarks();
-    const projectPapers = bookmarks.filter(b => project.paperIds.includes(b.id));
+		const bookmarks = getBookmarks();
+		const projectPapers = bookmarks.filter((b) =>
+			project.paperIds.includes(b.id),
+		);
 
-    const header = document.createElement("div");
-    header.className = "project-item-header";
+		const header = document.createElement("div");
+		header.className = "project-item-header";
 
-    const title = document.createElement("div");
-    title.className = "project-item-title";
-    title.innerText = project.name;
-    
-    // Add active badge if this is the active project
-    if (activeProjectId === project.id) {
-      const badge = document.createElement("span");
-      badge.className = "project-active-badge";
-      badge.innerText = "ACTIVE";
-      title.appendChild(badge);
-    }
+		const title = document.createElement("div");
+		title.className = "project-item-title";
+		title.innerText = project.name;
 
-    const actions = document.createElement("div");
-    actions.className = "project-item-actions item-actions";
-    
-    // Add Edit button with pencil icon
-    const editButton = document.createElement("button");
-    editButton.type = "button";
-    editButton.className = "project-icon-button tooltip-button";
-    editButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-    editButton.title = "Edit project";
-    editButton.setAttribute("aria-label", "Edit project");
-    editButton.onclick = (event) => {
-      event.stopPropagation();
-      showEditProjectDialog(project.id);
-    };
-    
-    // Add Set Active or Deactivate button
-    const activeButton = document.createElement("button");
-    activeButton.type = "button";
-    activeButton.className = "project-ghost-button tooltip-button";
-    
-    if (activeProjectId === project.id) {
-      activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
-      activeButton.title = "Deactivate project";
-      activeButton.setAttribute("aria-label", "Deactivate project");
-      activeButton.onclick = (event) => {
-        event.stopPropagation();
-        setActiveProjectId(null);
-        renderProjectList();
-        renderBookmarkList(); // Update bookmark view
-      };
-    } else {
-      activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>`;
-      activeButton.title = "Set active project";
-      activeButton.setAttribute("aria-label", "Set active project");
-      activeButton.onclick = (event) => {
-        event.stopPropagation();
-        setActiveProjectId(project.id);
-        renderProjectList();
-        renderBookmarkList(); // Update bookmark view
-      };
-    }
+		// Add active badge if this is the active project
+		if (activeProjectId === project.id) {
+			const badge = document.createElement("span");
+			badge.className = "project-active-badge";
+			badge.innerText = "ACTIVE";
+			title.appendChild(badge);
+		}
 
-    const toggleButton = document.createElement("button");
-    toggleButton.type = "button";
-    toggleButton.className = "project-ghost-button tooltip-button";
-    toggleButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
-    toggleButton.title = "Show details";
-    toggleButton.setAttribute("aria-label", "Show details");
+		const actions = document.createElement("div");
+		actions.className = "project-item-actions item-actions";
 
-    const deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.className = "project-danger-button tooltip-button";
-    deleteButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
-    deleteButton.title = "Delete project";
-    deleteButton.setAttribute("aria-label", "Delete project");
-    deleteButton.onclick = (event) => {
-      event.stopPropagation();
-      if (confirm(`Delete project "${project.name}"?`)) {
-        deleteProject(project.id);
-      }
-    };
+		// Add Edit button with pencil icon
+		const editButton = document.createElement("button");
+		editButton.type = "button";
+		editButton.className = "project-icon-button tooltip-button";
+		editButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+		editButton.title = "Edit project";
+		editButton.setAttribute("aria-label", "Edit project");
+		editButton.onclick = (event) => {
+			event.stopPropagation();
+			showEditProjectDialog(project.id);
+		};
 
-    actions.appendChild(editButton);
-    actions.appendChild(activeButton);
-    actions.appendChild(toggleButton);
-    actions.appendChild(deleteButton);
+		// Add Set Active or Deactivate button
+		const activeButton = document.createElement("button");
+		activeButton.type = "button";
+		activeButton.className = "project-ghost-button tooltip-button";
 
-    header.appendChild(title);
+		if (activeProjectId === project.id) {
+			activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+			activeButton.title = "Deactivate project";
+			activeButton.setAttribute("aria-label", "Deactivate project");
+			activeButton.onclick = (event) => {
+				event.stopPropagation();
+				setActiveProjectId(null);
+				renderProjectList();
+				renderBookmarkList(); // Update bookmark view
+			};
+		} else {
+			activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>`;
+			activeButton.title = "Set active project";
+			activeButton.setAttribute("aria-label", "Set active project");
+			activeButton.onclick = (event) => {
+				event.stopPropagation();
+				setActiveProjectId(project.id);
+				renderProjectList();
+				renderBookmarkList(); // Update bookmark view
+			};
+		}
 
-    const meta = document.createElement("div");
-    meta.className = "project-item-meta";
-    meta.innerText = `${projectPapers.length} paper${projectPapers.length !== 1 ? 's' : ''}`;
-    if (project.description) {
-      meta.innerText += ` • ${project.description}`;
-    }
+		const toggleButton = document.createElement("button");
+		toggleButton.type = "button";
+		toggleButton.className = "project-ghost-button tooltip-button";
+		toggleButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+		toggleButton.title = "Show details";
+		toggleButton.setAttribute("aria-label", "Show details");
 
-    const details = document.createElement("div");
-    details.className = "project-item-details";
-    details.hidden = true;
+		const deleteButton = document.createElement("button");
+		deleteButton.type = "button";
+		deleteButton.className = "project-danger-button tooltip-button";
+		deleteButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+		deleteButton.title = "Delete project";
+		deleteButton.setAttribute("aria-label", "Delete project");
+		deleteButton.onclick = (event) => {
+			event.stopPropagation();
+			if (confirm(`Delete project "${project.name}"?`)) {
+				deleteProject(project.id);
+			}
+		};
 
-    if (projectPapers.length === 0) {
-      details.innerHTML = `<div class="small-note">No papers in this project yet.</div>`;
-    } else {
-      const papersList = document.createElement("div");
-      papersList.className = "project-papers-list";
+		actions.appendChild(editButton);
+		actions.appendChild(activeButton);
+		actions.appendChild(toggleButton);
+		actions.appendChild(deleteButton);
 
-      projectPapers.forEach((paper) => {
-        const paperItem = document.createElement("div");
-        paperItem.className = "project-paper-item";
+		header.appendChild(title);
 
-        paperItem.innerHTML = `
+		const meta = document.createElement("div");
+		meta.className = "project-item-meta";
+		meta.innerText = `${projectPapers.length} paper${projectPapers.length !== 1 ? "s" : ""}`;
+		if (project.description) {
+			meta.innerText += ` • ${project.description}`;
+		}
+
+		const details = document.createElement("div");
+		details.className = "project-item-details";
+		details.hidden = true;
+
+		if (projectPapers.length === 0) {
+			details.innerHTML = `<div class="small-note">No papers in this project yet.</div>`;
+		} else {
+			const papersList = document.createElement("div");
+			papersList.className = "project-papers-list";
+
+			projectPapers.forEach((paper) => {
+				const paperItem = document.createElement("div");
+				paperItem.className = "project-paper-item";
+
+				paperItem.innerHTML = `
           <div class="project-paper-title">${escapeHtml(paper.title || "Untitled")}</div>
           <div class="project-paper-meta">${escapeHtml([paper.year, paper.authors].filter(Boolean).join(" • "))}</div>
         `;
 
-        const removeBtn = document.createElement("button");
-        removeBtn.type = "button";
-        removeBtn.className = "project-paper-remove tooltip-button";
-        removeBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-        removeBtn.title = "Remove paper";
-        removeBtn.setAttribute("aria-label", "Remove paper");
-        removeBtn.onclick = () => {
-          removePaperFromProject(project.id, paper.id);
-        };
+				const removeBtn = document.createElement("button");
+				removeBtn.type = "button";
+				removeBtn.className = "project-paper-remove tooltip-button";
+				removeBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+				removeBtn.title = "Remove paper";
+				removeBtn.setAttribute("aria-label", "Remove paper");
+				removeBtn.onclick = () => {
+					removePaperFromProject(project.id, paper.id);
+				};
 
-        paperItem.appendChild(removeBtn);
-        papersList.appendChild(paperItem);
-      });
+				paperItem.appendChild(removeBtn);
+				papersList.appendChild(paperItem);
+			});
 
-      details.appendChild(papersList);
-    }
+			details.appendChild(papersList);
+		}
 
-    toggleButton.onclick = () => {
-      // Collapse any currently expanded project
-      if (currentExpandedProjectDetails && currentExpandedProjectDetails !== details) {
-        currentExpandedProjectDetails.hidden = true;
-        if (currentExpandedProjectButton) {
-          currentExpandedProjectButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
-          currentExpandedProjectButton.title = "Show details";
-          currentExpandedProjectButton.setAttribute("aria-label", "Show details");
-        }
-      }
+		toggleButton.onclick = () => {
+			// Collapse any currently expanded project
+			if (
+				currentExpandedProjectDetails &&
+				currentExpandedProjectDetails !== details
+			) {
+				currentExpandedProjectDetails.hidden = true;
+				if (currentExpandedProjectButton) {
+					currentExpandedProjectButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+					currentExpandedProjectButton.title = "Show details";
+					currentExpandedProjectButton.setAttribute(
+						"aria-label",
+						"Show details",
+					);
+				}
+			}
 
-      // Toggle current card
-      details.hidden = !details.hidden;
-      toggleButton.innerHTML = details.hidden
-        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
-        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="3 3 21 21"/><polyline points="15 3 21 3 21 9"/></svg>`;
-      toggleButton.title = details.hidden ? "Show details" : "Hide details";
-      toggleButton.setAttribute("aria-label", toggleButton.title);
+			// Toggle current card
+			details.hidden = !details.hidden;
+			toggleButton.innerHTML = details.hidden
+				? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
+				: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="3 3 21 21"/><polyline points="15 3 21 3 21 9"/></svg>`;
+			toggleButton.title = details.hidden ? "Show details" : "Hide details";
+			toggleButton.setAttribute("aria-label", toggleButton.title);
 
-      // Update tracking
-      if (details.hidden) {
-        currentExpandedProjectDetails = null;
-        currentExpandedProjectButton = null;
-      } else {
-        currentExpandedProjectDetails = details;
-        currentExpandedProjectButton = toggleButton;
-      }
-    };
+			// Update tracking
+			if (details.hidden) {
+				currentExpandedProjectDetails = null;
+				currentExpandedProjectButton = null;
+			} else {
+				currentExpandedProjectDetails = details;
+				currentExpandedProjectButton = toggleButton;
+			}
+		};
 
-    item.appendChild(header);
-    item.appendChild(meta);
-    item.appendChild(details);
-    item.appendChild(actions);
-    list.appendChild(item);
-    attachMobileActionsToggle(item);
-  });
+		item.appendChild(header);
+		item.appendChild(meta);
+		item.appendChild(details);
+		item.appendChild(actions);
+		list.appendChild(item);
+		attachMobileActionsToggle(item);
+	});
 }
 
 function createBookmarkListItem(b, options = {}) {
-  const item = document.createElement("div");
-  item.className = "bookmark-item item-card";
-  item.dataset.bookmarkId = b.id;
-  const {
-    showAddToActiveProject = false,
-    activeProjectId: activeProjectIdOption = null,
-    activeProjectName = ""
-  } = options;
-  
-  const header = document.createElement("div");
-  header.className = "bookmark-item-header";
-  
-  const title = document.createElement("div");
-  title.className = "bookmark-item-title";
-  title.textContent = b.title || "Untitled";
-  
-  const actions = document.createElement("div");
-  actions.className = "bookmark-item-actions item-actions";
-  
-  // Generate button with dropdown
-  const generateButtonContainer = document.createElement("div");
-  generateButtonContainer.className = "generate-dropdown-container";
-  
-  const generateButton = document.createElement("button");
-  generateButton.type = "button";
-  generateButton.className = "bookmark-icon-button tooltip-button";
-  generateButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`;
-  generateButton.title = "Generate AI research note";
-  
-  const generateDropdown = document.createElement("div");
-  generateDropdown.className = "generate-dropdown-menu";
-  generateDropdown.innerHTML = `
+	const item = document.createElement("div");
+	item.className = "bookmark-item item-card";
+	item.dataset.bookmarkId = b.id;
+	const {
+		showAddToActiveProject = false,
+		activeProjectId: activeProjectIdOption = null,
+		activeProjectName = "",
+	} = options;
+
+	const header = document.createElement("div");
+	header.className = "bookmark-item-header";
+
+	const title = document.createElement("div");
+	title.className = "bookmark-item-title";
+	title.textContent = b.title || "Untitled";
+
+	const actions = document.createElement("div");
+	actions.className = "bookmark-item-actions item-actions";
+
+	// Generate button with dropdown
+	const generateButtonContainer = document.createElement("div");
+	generateButtonContainer.className = "generate-dropdown-container";
+
+	const generateButton = document.createElement("button");
+	generateButton.type = "button";
+	generateButton.className = "bookmark-icon-button tooltip-button";
+	generateButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`;
+	generateButton.title = "Generate AI research note";
+
+	const generateDropdown = document.createElement("div");
+	generateDropdown.className = "generate-dropdown-menu";
+	generateDropdown.innerHTML = `
     <button type="button" class="dropdown-item" data-template="paragraph">Paragraph</button>
     <button type="button" class="dropdown-item" data-template="research_analysis_paragraph">Research Analysis (Paragraph)</button>
     <button type="button" class="dropdown-item" data-template="research_analysis_bullets">Research Analysis (Bullet Points)</button>
     <button type="button" class="dropdown-item" data-template="arguments_main_points">Arguments and Main Points</button>
     <button type="button" class="dropdown-item" data-template="connections_cited_works">Connections and Cited Works</button>
   `;
-  
-  // Toggle dropdown on button click
-  generateButton.onclick = (event) => {
-    event.stopPropagation();
-    // Close all other dropdowns first
-    document.querySelectorAll('.generate-dropdown-menu.show').forEach(menu => {
-      if (menu !== generateDropdown) {
-        menu.classList.remove('show');
-      }
-    });
-    generateDropdown.classList.toggle('show');
-  };
-  
-  // Handle template selection
-  generateDropdown.querySelectorAll('.dropdown-item').forEach(item => {
-    item.onclick = (event) => {
-      event.stopPropagation();
-      const templateId = item.dataset.template;
-      generateDropdown.classList.remove('show');
-      generateResearchNote(b.id, templateId);
-    };
-  });
-  
-  generateButtonContainer.appendChild(generateButton);
-  generateButtonContainer.appendChild(generateDropdown);
-  
-  const toggleButton = document.createElement("button");
-  toggleButton.type = "button";
-  toggleButton.className = "bookmark-icon-button tooltip-button";
-  toggleButton.classList.add("bookmark-toggle-button");
-  setBookmarkToggleState(toggleButton, false);
-  
-  const deleteButton = document.createElement("button");
-  deleteButton.type = "button";
-  deleteButton.className = "bookmark-icon-button bookmark-danger tooltip-button";
-  deleteButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
-  deleteButton.title = "Delete bookmark";
-  deleteButton.onclick = (event) => {
-    event.stopPropagation();
-    removeBookmark(b.id);
-  };
 
-  if (showAddToActiveProject && activeProjectIdOption) {
-    const addToProjectButton = document.createElement("button");
-    addToProjectButton.type = "button";
-    addToProjectButton.className = "bookmark-icon-button tooltip-button";
-    const tooltipLabel = activeProjectName
-      ? `Add to ${activeProjectName}`
-      : "Add to active project";
-    addToProjectButton.setAttribute("aria-label", tooltipLabel);
-    addToProjectButton.title = tooltipLabel;
-    addToProjectButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`;
-    addToProjectButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      addPaperToProject(activeProjectIdOption, b.id);
-    });
-    actions.appendChild(addToProjectButton);
-  }
-  
-  actions.appendChild(generateButtonContainer);
-  actions.appendChild(toggleButton);
-  actions.appendChild(deleteButton);
-  
-  header.appendChild(title);
-  
-  const meta = document.createElement("div");
-  meta.className = "bookmark-item-meta";
-  meta.textContent = [b.year, b.authors].filter(Boolean).join(" • ");
-  
-  const details = document.createElement("div");
-  details.className = "bookmark-item-details";
-  details.hidden = true;
-  
-  const googleLinks = Array.isArray(b.googleLinks)
-    ? b.googleLinks
-    : Array.isArray(b.pdfLinks)
-    ? b.pdfLinks
-    : [];
-  const googleStatus =
-    b.googleLinksStatus || b.pdfLinksStatus || "missing_settings";
-  let sourceSection = "";
-  const refreshDisabled = googleStatus === "pending";
-  const refreshButtonLabel = refreshDisabled ? "Refreshing..." : "Refresh links";
-  
-  if (googleStatus === "pending") {
-    sourceSection = `<div class="small-note">Finding source links...</div>`;
-  } else if (googleStatus === "missing_settings") {
-    sourceSection = `<div class="small-note">Add your Google API key + cx to find sources.</div>`;
-  } else if (googleStatus === "missing_query") {
-    sourceSection = `<div class="small-note">Missing title or author for source lookup.</div>`;
-  } else if (googleStatus && googleStatus !== "ok") {
-    sourceSection = `<div class="small-note">Could not load source links (${escapeHtml(
-      googleStatus
-    )}).</div>`;
-  }
-  
-  const aiSummarySection = b.aiSummary
-    ? `<div class="chatty-summary">
+	// Toggle dropdown on button click
+	generateButton.onclick = (event) => {
+		event.stopPropagation();
+		// Close all other dropdowns first
+		document
+			.querySelectorAll(".generate-dropdown-menu.show")
+			.forEach((menu) => {
+				if (menu !== generateDropdown) {
+					menu.classList.remove("show");
+				}
+			});
+		generateDropdown.classList.toggle("show");
+	};
+
+	// Handle template selection
+	generateDropdown.querySelectorAll(".dropdown-item").forEach((item) => {
+		item.onclick = (event) => {
+			event.stopPropagation();
+			const templateId = item.dataset.template;
+			generateDropdown.classList.remove("show");
+			generateResearchNote(b.id, templateId);
+		};
+	});
+
+	generateButtonContainer.appendChild(generateButton);
+	generateButtonContainer.appendChild(generateDropdown);
+
+	const toggleButton = document.createElement("button");
+	toggleButton.type = "button";
+	toggleButton.className = "bookmark-icon-button tooltip-button";
+	toggleButton.classList.add("bookmark-toggle-button");
+	setBookmarkToggleState(toggleButton, false);
+
+	const deleteButton = document.createElement("button");
+	deleteButton.type = "button";
+	deleteButton.className =
+		"bookmark-icon-button bookmark-danger tooltip-button";
+	deleteButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+	deleteButton.title = "Delete bookmark";
+	deleteButton.onclick = (event) => {
+		event.stopPropagation();
+		removeBookmark(b.id);
+	};
+
+	if (showAddToActiveProject && activeProjectIdOption) {
+		const addToProjectButton = document.createElement("button");
+		addToProjectButton.type = "button";
+		addToProjectButton.className = "bookmark-icon-button tooltip-button";
+		const tooltipLabel = activeProjectName
+			? `Add to ${activeProjectName}`
+			: "Add to active project";
+		addToProjectButton.setAttribute("aria-label", tooltipLabel);
+		addToProjectButton.title = tooltipLabel;
+		addToProjectButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`;
+		addToProjectButton.addEventListener("click", (event) => {
+			event.stopPropagation();
+			addPaperToProject(activeProjectIdOption, b.id);
+		});
+		actions.appendChild(addToProjectButton);
+	}
+
+	actions.appendChild(generateButtonContainer);
+	actions.appendChild(toggleButton);
+	actions.appendChild(deleteButton);
+
+	header.appendChild(title);
+
+	const meta = document.createElement("div");
+	meta.className = "bookmark-item-meta";
+	meta.textContent = [b.year, b.authors].filter(Boolean).join(" • ");
+
+	const details = document.createElement("div");
+	details.className = "bookmark-item-details";
+	details.hidden = true;
+
+	const googleLinks = Array.isArray(b.googleLinks)
+		? b.googleLinks
+		: Array.isArray(b.pdfLinks)
+			? b.pdfLinks
+			: [];
+	const googleStatus =
+		b.googleLinksStatus || b.pdfLinksStatus || "missing_settings";
+	let sourceSection = "";
+	const refreshDisabled = googleStatus === "pending";
+	const refreshButtonLabel = refreshDisabled
+		? "Refreshing..."
+		: "Refresh links";
+
+	if (googleStatus === "pending") {
+		sourceSection = `<div class="small-note">Finding source links...</div>`;
+	} else if (googleStatus === "missing_settings") {
+		sourceSection = `<div class="small-note">Add your Google API key + cx to find sources.</div>`;
+	} else if (googleStatus === "missing_query") {
+		sourceSection = `<div class="small-note">Missing title or author for source lookup.</div>`;
+	} else if (googleStatus && googleStatus !== "ok") {
+		sourceSection = `<div class="small-note">Could not load source links (${escapeHtml(
+			googleStatus,
+		)}).</div>`;
+	}
+
+	const aiSummarySection = b.aiSummary
+		? `<div class="chatty-summary">
          <div class="chatty-header">
            <span class="chatty-name">🤖 Chatty</span>
          </div>
          <div class="chatty-content" id="chatty-status-${b.id}">${escapeHtml(
-           b.aiSummary
-         )}</div>
+						b.aiSummary,
+					)}</div>
        </div>`
-    : "";
-  
-  // Display AI-generated abstract or original abstract
-  let abstractSection = "";
-  if (b.aiAbstract && b.aiAbstractGenerated) {
-    // AI-generated abstract with warning
-    abstractSection = `<div class="chatty-summary">
+		: "";
+
+	// Display AI-generated abstract or original abstract
+	let abstractSection = "";
+	if (b.aiAbstract && b.aiAbstractGenerated) {
+		// AI-generated abstract with warning
+		abstractSection = `<div class="chatty-summary">
          <div class="chatty-header">
            <span class="chatty-name">🤖 Abstraction</span>
          </div>
          <div class="chatty-content" id="chatty-status-${b.id}">${escapeHtml(
-           b.aiAbstract
-         )}</div>
+						b.aiAbstract,
+					)}</div>
          <div class="chatty-warning">Generated with OpenAI, may be inaccurate</div>
        </div>`;
-  } else if (hasValidAbstract(b.abstract)) {
-    // Original abstract
-    abstractSection = `<div class="chatty-summary">
+	} else if (hasValidAbstract(b.abstract)) {
+		// Original abstract
+		abstractSection = `<div class="chatty-summary">
          <div class="chatty-header">
            <span class="chatty-name">Abstraction</span>
          </div>
          <div class="chatty-content">${escapeHtml(b.abstract)}</div>
        </div>`;
-  }
-  
-  const detailYearText = `${b.year || "Unknown"}${
-    b.publication_date ? ` (${b.publication_date})` : ""
-  }`;
-  const detailCitationsText =
-    b.cited_by_count != null ? `Citations: ${b.cited_by_count}` : "";
-  const detailDoiText = b.doi ? `DOI: ${b.doi}` : "";
-  
-  details.innerHTML = `
+	}
+
+	const detailYearText = `${b.year || "Unknown"}${
+		b.publication_date ? ` (${b.publication_date})` : ""
+	}`;
+	const detailCitationsText =
+		b.cited_by_count != null ? `Citations: ${b.cited_by_count}` : "";
+	const detailDoiText = b.doi ? `DOI: ${b.doi}` : "";
+
+	details.innerHTML = `
     <div class="bookmark-item-info">
       <small>${escapeHtml(detailYearText)}</small>
       <small>${escapeHtml(b.authors || "")}</small>
       ${
-        detailCitationsText
-          ? `<small>${escapeHtml(detailCitationsText)}</small>`
-          : ""
-      }
-      ${
-        detailDoiText
-          ? `<small>${escapeHtml(detailDoiText)}</small>`
-          : ""
-      }
+				detailCitationsText
+					? `<small>${escapeHtml(detailCitationsText)}</small>`
+					: ""
+			}
+      ${detailDoiText ? `<small>${escapeHtml(detailDoiText)}</small>` : ""}
     </div>
     ${renderSourcePills(googleLinks)}
     <div class="bookmark-source-actions">
@@ -2284,326 +2371,343 @@ function createBookmarkListItem(b, options = {}) {
       <textarea id="bookmark-note-${b.id}" placeholder="Add a note..."></textarea>
     </div>
   `;
-  
-  const noteInput = details.querySelector("textarea");
-  if (noteInput) {
-    noteInput.value = b.note || "";
-    noteInput.addEventListener("input", (event) => {
-      updateBookmarkNote(b.id, event.target.value);
-    });
-  }
 
-  const refreshButton = details.querySelector(
-    `[data-refresh-bookmark="${CSS.escape(b.id)}"]`
-  );
-  if (refreshButton) {
-    refreshButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      refreshBookmarkLinks(b.id);
-    });
-  }
-  
-  // Setup project assignment dropdown
-  const projectSelectId = `project-select-${b.id}`;
-  const projectSelect = details.querySelector(
-    `#${CSS.escape(projectSelectId)}`
-  );
-  if (projectSelect) {
-    const projects = getProjects();
-    
-    // Find which project(s) contain this bookmark
-    let bookmarkProjectId = null;
-    for (const project of projects) {
-      if (project.paperIds.includes(b.id)) {
-        bookmarkProjectId = project.id;
-        break;
-      }
-    }
-    
-    // Populate dropdown with projects
-    projects.forEach(project => {
-      const option = document.createElement('option');
-      option.value = project.id;
-      option.textContent = project.name;
-      if (project.id === bookmarkProjectId) {
-        option.selected = true;
-      }
-      projectSelect.appendChild(option);
-    });
-    
-    // Handle project assignment changes
-    projectSelect.addEventListener('change', (event) => {
-      const newProjectId = event.target.value;
-      const oldProjectId = bookmarkProjectId;
-      
-      // Remove from old project if it was in one
-      if (oldProjectId) {
-        removePaperFromProject(oldProjectId, b.id);
-      }
-      
-      // Add to new project if one was selected
-      if (newProjectId) {
-        addPaperToProject(newProjectId, b.id);
-      }
-      
-      // Update the stored project ID
-      bookmarkProjectId = newProjectId || null;
-    });
-  }
-  
-  toggleButton.onclick = () => {
-    // Collapse any currently expanded bookmark
-    if (currentExpandedBookmarkDetails && currentExpandedBookmarkDetails !== details) {
-      currentExpandedBookmarkDetails.hidden = true;
-      if (currentExpandedBookmarkButton) {
-        setBookmarkToggleState(currentExpandedBookmarkButton, false);
-      }
-    }
-  
-    // Toggle current card
-    details.hidden = !details.hidden;
-    setBookmarkToggleState(toggleButton, !details.hidden);
-  
-    // Update tracking
-    if (details.hidden) {
-      currentExpandedBookmarkDetails = null;
-      currentExpandedBookmarkButton = null;
-      currentExpandedBookmarkId = null;
-    } else {
-      currentExpandedBookmarkDetails = details;
-      currentExpandedBookmarkButton = toggleButton;
-      currentExpandedBookmarkId = b.id;
-    }
-  };
-  
-  item.appendChild(header);
-  item.appendChild(meta);
-  item.appendChild(details);
-  item.appendChild(actions);
-  
-  attachMobileActionsToggle(item);
-  
-  return item;
+	const noteInput = details.querySelector("textarea");
+	if (noteInput) {
+		noteInput.value = b.note || "";
+		noteInput.addEventListener("input", (event) => {
+			updateBookmarkNote(b.id, event.target.value);
+		});
+	}
+
+	const refreshButton = details.querySelector(
+		`[data-refresh-bookmark="${CSS.escape(b.id)}"]`,
+	);
+	if (refreshButton) {
+		refreshButton.addEventListener("click", (event) => {
+			event.stopPropagation();
+			refreshBookmarkLinks(b.id);
+		});
+	}
+
+	// Setup project assignment dropdown
+	const projectSelectId = `project-select-${b.id}`;
+	const projectSelect = details.querySelector(
+		`#${CSS.escape(projectSelectId)}`,
+	);
+	if (projectSelect) {
+		const projects = getProjects();
+
+		// Find which project(s) contain this bookmark
+		let bookmarkProjectId = null;
+		for (const project of projects) {
+			if (project.paperIds.includes(b.id)) {
+				bookmarkProjectId = project.id;
+				break;
+			}
+		}
+
+		// Populate dropdown with projects
+		projects.forEach((project) => {
+			const option = document.createElement("option");
+			option.value = project.id;
+			option.textContent = project.name;
+			if (project.id === bookmarkProjectId) {
+				option.selected = true;
+			}
+			projectSelect.appendChild(option);
+		});
+
+		// Handle project assignment changes
+		projectSelect.addEventListener("change", (event) => {
+			const newProjectId = event.target.value;
+			const oldProjectId = bookmarkProjectId;
+
+			// Remove from old project if it was in one
+			if (oldProjectId) {
+				removePaperFromProject(oldProjectId, b.id);
+			}
+
+			// Add to new project if one was selected
+			if (newProjectId) {
+				addPaperToProject(newProjectId, b.id);
+			}
+
+			// Update the stored project ID
+			bookmarkProjectId = newProjectId || null;
+		});
+	}
+
+	toggleButton.onclick = () => {
+		// Collapse any currently expanded bookmark
+		if (
+			currentExpandedBookmarkDetails &&
+			currentExpandedBookmarkDetails !== details
+		) {
+			currentExpandedBookmarkDetails.hidden = true;
+			if (currentExpandedBookmarkButton) {
+				setBookmarkToggleState(currentExpandedBookmarkButton, false);
+			}
+		}
+
+		// Toggle current card
+		details.hidden = !details.hidden;
+		setBookmarkToggleState(toggleButton, !details.hidden);
+
+		// Update tracking
+		if (details.hidden) {
+			currentExpandedBookmarkDetails = null;
+			currentExpandedBookmarkButton = null;
+			currentExpandedBookmarkId = null;
+		} else {
+			currentExpandedBookmarkDetails = details;
+			currentExpandedBookmarkButton = toggleButton;
+			currentExpandedBookmarkId = b.id;
+		}
+	};
+
+	item.appendChild(header);
+	item.appendChild(meta);
+	item.appendChild(details);
+	item.appendChild(actions);
+
+	attachMobileActionsToggle(item);
+
+	return item;
 }
 
 function attachMobileActionsToggle(item) {
-  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+	const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
 
-  item.addEventListener('click', (event) => {
-    if (!isMobile()) return;
+	item.addEventListener("click", (event) => {
+		if (!isMobile()) return;
 
-    if (event.target.closest('button') || event.target.closest('a') ||
-        event.target.closest('input') || event.target.closest('textarea') ||
-        event.target.closest('select')) {
-      return;
-    }
+		if (
+			event.target.closest("button") ||
+			event.target.closest("a") ||
+			event.target.closest("input") ||
+			event.target.closest("textarea") ||
+			event.target.closest("select")
+		) {
+			return;
+		}
 
-    item.classList.toggle('actions-visible');
-  });
+		item.classList.toggle("actions-visible");
+	});
 }
 
 function renderBookmarkList() {
-  const list = document.getElementById("bookmarkList");
-  if (!list) return;
+	const list = document.getElementById("bookmarkList");
+	if (!list) return;
 
-  const allBookmarks = getBookmarks();
-  const summary = document.getElementById("bookmarkSummary");
-  const drawer = document.getElementById("libraryDrawer");
-  const scrollTop = drawer ? drawer.scrollTop : 0;
-  const expandedBookmarkId = currentExpandedBookmarkId;
+	const allBookmarks = getBookmarks();
+	const summary = document.getElementById("bookmarkSummary");
+	const drawer = document.getElementById("libraryDrawer");
+	const scrollTop = drawer ? drawer.scrollTop : 0;
+	const expandedBookmarkId = currentExpandedBookmarkId;
 
-  list.innerHTML = "";
+	list.innerHTML = "";
 
-  // Clear tracking variables when re-rendering
-  currentExpandedBookmarkDetails = null;
-  currentExpandedBookmarkButton = null;
+	// Clear tracking variables when re-rendering
+	currentExpandedBookmarkDetails = null;
+	currentExpandedBookmarkButton = null;
 
-  const filtered = filterBookmarks(allBookmarks);
-  const activeProject = activeProjectId
-    ? getProjects().find((p) => p.id === activeProjectId)
-    : null;
+	const filtered = filterBookmarks(allBookmarks);
+	const activeProject = activeProjectId
+		? getProjects().find((p) => p.id === activeProjectId)
+		: null;
 
-  if (!activeProject) {
-    const bookmarks = sortBookmarks(filtered);
+	if (!activeProject) {
+		const bookmarks = sortBookmarks(filtered);
 
-    if (summary) {
-      summary.innerText = bookmarkFilterTerm
-        ? `Showing ${bookmarks.length} of ${allBookmarks.length} bookmarks (General)`
-        : `${allBookmarks.length} bookmarks (General)`;
-    }
+		if (summary) {
+			summary.innerText = bookmarkFilterTerm
+				? `Showing ${bookmarks.length} of ${allBookmarks.length} bookmarks (General)`
+				: `${allBookmarks.length} bookmarks (General)`;
+		}
 
-    if (bookmarks.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "small-note";
-      empty.innerText = bookmarkFilterTerm
-        ? "No bookmarks match this filter."
-        : "No bookmarks yet.";
-      list.appendChild(empty);
-      restoreBookmarkListView(list, expandedBookmarkId, scrollTop);
-      return;
-    }
+		if (bookmarks.length === 0) {
+			const empty = document.createElement("div");
+			empty.className = "small-note";
+			empty.innerText = bookmarkFilterTerm
+				? "No bookmarks match this filter."
+				: "No bookmarks yet.";
+			list.appendChild(empty);
+			restoreBookmarkListView(list, expandedBookmarkId, scrollTop);
+			return;
+		}
 
-    bookmarks.forEach((b) => {
-      list.appendChild(createBookmarkListItem(b));
-    });
-    restoreBookmarkListView(list, expandedBookmarkId, scrollTop);
-    return;
-  }
+		bookmarks.forEach((b) => {
+			list.appendChild(createBookmarkListItem(b));
+		});
+		restoreBookmarkListView(list, expandedBookmarkId, scrollTop);
+		return;
+	}
 
-  const activeProjectIds = new Set(activeProject.paperIds || []);
-  const allProjectIds = new Set(
-    getProjects().flatMap((project) => project.paperIds || [])
-  );
-  const projectBookmarks = sortBookmarks(
-    filtered.filter((bookmark) => activeProjectIds.has(bookmark.id))
-  );
-  const generalBookmarks = sortBookmarks(
-    filtered.filter((bookmark) => !allProjectIds.has(bookmark.id))
-  );
+	const activeProjectIds = new Set(activeProject.paperIds || []);
+	const allProjectIds = new Set(
+		getProjects().flatMap((project) => project.paperIds || []),
+	);
+	const projectBookmarks = sortBookmarks(
+		filtered.filter((bookmark) => activeProjectIds.has(bookmark.id)),
+	);
+	const generalBookmarks = sortBookmarks(
+		filtered.filter((bookmark) => !allProjectIds.has(bookmark.id)),
+	);
 
-  if (summary) {
-    summary.innerText = bookmarkFilterTerm
-      ? `Showing ${projectBookmarks.length} project and ${generalBookmarks.length} general bookmarks`
-      : `${projectBookmarks.length} bookmarks in ${activeProject.name} • ${generalBookmarks.length} general bookmarks`;
-  }
+	if (summary) {
+		summary.innerText = bookmarkFilterTerm
+			? `Showing ${projectBookmarks.length} project and ${generalBookmarks.length} general bookmarks`
+			: `${projectBookmarks.length} bookmarks in ${activeProject.name} • ${generalBookmarks.length} general bookmarks`;
+	}
 
-  const projectHeader = document.createElement("div");
-  projectHeader.className = "bookmark-section-title";
-  projectHeader.innerText = activeProject.name;
-  list.appendChild(projectHeader);
+	const projectHeader = document.createElement("div");
+	projectHeader.className = "bookmark-section-title";
+	projectHeader.innerText = activeProject.name;
+	list.appendChild(projectHeader);
 
-  if (projectBookmarks.length === 0) {
-    const emptyProject = document.createElement("div");
-    emptyProject.className = "small-note";
-    emptyProject.innerText = bookmarkFilterTerm
-      ? "No project bookmarks match this filter."
-      : "No bookmarks in this project yet.";
-    list.appendChild(emptyProject);
-  } else {
-    projectBookmarks.forEach((b) => {
-      list.appendChild(createBookmarkListItem(b));
-    });
-  }
+	if (projectBookmarks.length === 0) {
+		const emptyProject = document.createElement("div");
+		emptyProject.className = "small-note";
+		emptyProject.innerText = bookmarkFilterTerm
+			? "No project bookmarks match this filter."
+			: "No bookmarks in this project yet.";
+		list.appendChild(emptyProject);
+	} else {
+		projectBookmarks.forEach((b) => {
+			list.appendChild(createBookmarkListItem(b));
+		});
+	}
 
-  const divider = document.createElement("hr");
-  divider.className = "bookmark-section-divider";
-  list.appendChild(divider);
+	const divider = document.createElement("hr");
+	divider.className = "bookmark-section-divider";
+	list.appendChild(divider);
 
-  const generalHeader = document.createElement("div");
-  generalHeader.className = "bookmark-section-title";
-  generalHeader.innerText = "General bookmarks";
-  list.appendChild(generalHeader);
+	const generalHeader = document.createElement("div");
+	generalHeader.className = "bookmark-section-title";
+	generalHeader.innerText = "General bookmarks";
+	list.appendChild(generalHeader);
 
-  if (generalBookmarks.length === 0) {
-    const emptyGeneral = document.createElement("div");
-    emptyGeneral.className = "small-note";
-    emptyGeneral.innerText = bookmarkFilterTerm
-      ? "No general bookmarks match this filter."
-      : "No general bookmarks yet.";
-    list.appendChild(emptyGeneral);
-  } else {
-    generalBookmarks.forEach((b) => {
-      list.appendChild(
-        createBookmarkListItem(b, {
-          showAddToActiveProject: true,
-          activeProjectId: activeProject.id,
-          activeProjectName: activeProject.name
-        })
-      );
-    });
-  }
+	if (generalBookmarks.length === 0) {
+		const emptyGeneral = document.createElement("div");
+		emptyGeneral.className = "small-note";
+		emptyGeneral.innerText = bookmarkFilterTerm
+			? "No general bookmarks match this filter."
+			: "No general bookmarks yet.";
+		list.appendChild(emptyGeneral);
+	} else {
+		generalBookmarks.forEach((b) => {
+			list.appendChild(
+				createBookmarkListItem(b, {
+					showAddToActiveProject: true,
+					activeProjectId: activeProject.id,
+					activeProjectName: activeProject.name,
+				}),
+			);
+		});
+	}
 
-  restoreBookmarkListView(list, expandedBookmarkId, scrollTop);
+	restoreBookmarkListView(list, expandedBookmarkId, scrollTop);
 }
 
 function restoreBookmarkListView(list, expandedBookmarkId, scrollTop) {
-  if (expandedBookmarkId) {
-    const selector = `[data-bookmark-id="${CSS.escape(expandedBookmarkId)}"]`;
-    const item = list.querySelector(selector);
-    if (item) {
-      const details = item.querySelector(".bookmark-item-details");
-      const toggleButton = item.querySelector(".bookmark-toggle-button");
-      if (details && toggleButton) {
-        details.hidden = false;
-        setBookmarkToggleState(toggleButton, true);
-        currentExpandedBookmarkDetails = details;
-        currentExpandedBookmarkButton = toggleButton;
-      }
-    } else {
-      currentExpandedBookmarkId = null;
-    }
-  }
+	if (expandedBookmarkId) {
+		const selector = `[data-bookmark-id="${CSS.escape(expandedBookmarkId)}"]`;
+		const item = list.querySelector(selector);
+		if (item) {
+			const details = item.querySelector(".bookmark-item-details");
+			const toggleButton = item.querySelector(".bookmark-toggle-button");
+			if (details && toggleButton) {
+				details.hidden = false;
+				setBookmarkToggleState(toggleButton, true);
+				currentExpandedBookmarkDetails = details;
+				currentExpandedBookmarkButton = toggleButton;
+			}
+		} else {
+			currentExpandedBookmarkId = null;
+		}
+	}
 
-  const drawer = document.getElementById("libraryDrawer");
-  if (drawer) {
-    requestAnimationFrame(() => {
-      drawer.scrollTop = scrollTop;
-    });
-  }
+	const drawer = document.getElementById("libraryDrawer");
+	if (drawer) {
+		requestAnimationFrame(() => {
+			drawer.scrollTop = scrollTop;
+		});
+	}
 }
 
 function exportBookmarks() {
-  const data = JSON.stringify(getBookmarks(), null, 2);
-  const blob = new Blob([data], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+	const data = JSON.stringify(getBookmarks(), null, 2);
+	const blob = new Blob([data], { type: "application/json" });
+	const url = URL.createObjectURL(blob);
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "research_bookmarks.json";
-  a.click();
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = "research_bookmarks.json";
+	a.click();
 
-  URL.revokeObjectURL(url);
+	URL.revokeObjectURL(url);
 }
 
 // ---------- INITIALIZATION ----------
 
 function initializeSettings() {
-  // Load Google settings
-  const googleSettings = getGoogleSettings();
-  const googleApiKeyInput = document.getElementById("googleApiKey");
-  const googleCxInput = document.getElementById("googleCx");
-  if (googleApiKeyInput) googleApiKeyInput.value = googleSettings.apiKey || "";
-  if (googleCxInput) googleCxInput.value = googleSettings.cx || "";
-  updateGoogleSettingsStatus();
+	// Load Google settings
+	const googleSettings = getGoogleSettings();
+	const googleApiKeyInput = document.getElementById("googleApiKey");
+	const googleCxInput = document.getElementById("googleCx");
+	if (googleApiKeyInput) googleApiKeyInput.value = googleSettings.apiKey || "";
+	if (googleCxInput) googleCxInput.value = googleSettings.cx || "";
+	updateGoogleSettingsStatus();
 
-  // Load OpenAI settings
-  const openaiSettings = getOpenAISettings();
-  const openaiApiKeyInput = document.getElementById("openaiApiKey");
-  if (openaiApiKeyInput && openaiSettings.apiKey) {
-    openaiApiKeyInput.value = openaiSettings.apiKey;
+	// Load OpenAI settings
+	const openaiSettings = getOpenAISettings();
+	const openaiApiKeyInput = document.getElementById("openaiApiKey");
+	if (openaiApiKeyInput && openaiSettings.apiKey) {
+		openaiApiKeyInput.value = openaiSettings.apiKey;
 
-    // If there's a saved API key, show the config panel
-    const configPanel = document.getElementById("openaiConfigPanel");
-    const statusDiv = document.getElementById("openaiValidationStatus");
-    if (configPanel && statusDiv) {
-      statusDiv.innerText = "API key loaded from storage. Click 'Validate Key' to verify.";
-      configPanel.style.display = "block";
+		// If there's a saved API key, show the config panel
+		const configPanel = document.getElementById("openaiConfigPanel");
+		const statusDiv = document.getElementById("openaiValidationStatus");
+		if (configPanel && statusDiv) {
+			statusDiv.innerText =
+				"API key loaded from storage. Click 'Validate Key' to verify.";
+			configPanel.style.display = "block";
 
-      // Load saved config values
-      document.getElementById("openaiModel").value = openaiSettings.model;
-      document.getElementById("openaiTemperature").value = openaiSettings.temperature;
-      document.getElementById("tempValue").textContent = openaiSettings.temperature;
-      document.getElementById("openaiMaxTokens").value = openaiSettings.maxTokens;
-      document.getElementById("tokensValue").textContent = openaiSettings.maxTokens;
-      document.getElementById("openaiGenerateAbstractions").checked = openaiSettings.generateAbstractions;
-      const defaultTemplateSelect = document.getElementById("openaiDefaultTemplate");
-      if (defaultTemplateSelect) {
-        const defaultTemplateValue =
-          defaultTemplateSelect.querySelector(`option[value="${openaiSettings.defaultTemplate}"]`)
-            ? openaiSettings.defaultTemplate
-            : DEFAULT_TEMPLATE;
-        defaultTemplateSelect.value = defaultTemplateValue;
-      }
-      document.getElementById("openaiAutogenerate").checked = openaiSettings.autogenerate;
-    }
-  }
+			// Load saved config values
+			document.getElementById("openaiModel").value = openaiSettings.model;
+			document.getElementById("openaiTemperature").value =
+				openaiSettings.temperature;
+			document.getElementById("tempValue").textContent =
+				openaiSettings.temperature;
+			document.getElementById("openaiMaxTokens").value =
+				openaiSettings.maxTokens;
+			document.getElementById("tokensValue").textContent =
+				openaiSettings.maxTokens;
+			document.getElementById("openaiGenerateAbstractions").checked =
+				openaiSettings.generateAbstractions;
+			const defaultTemplateSelect = document.getElementById(
+				"openaiDefaultTemplate",
+			);
+			if (defaultTemplateSelect) {
+				const defaultTemplateValue = defaultTemplateSelect.querySelector(
+					`option[value="${openaiSettings.defaultTemplate}"]`,
+				)
+					? openaiSettings.defaultTemplate
+					: DEFAULT_TEMPLATE;
+				defaultTemplateSelect.value = defaultTemplateValue;
+			}
+			document.getElementById("openaiAutogenerate").checked =
+				openaiSettings.autogenerate;
+		}
+	}
 }
 
 // Settings are initialized when the settings drawer is created
 
 // Initialize project modal after DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeProjectModal);
+if (document.readyState === "loading") {
+	document.addEventListener("DOMContentLoaded", initializeProjectModal);
 } else {
-  initializeProjectModal();
+	initializeProjectModal();
 }
