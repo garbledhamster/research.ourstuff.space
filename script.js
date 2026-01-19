@@ -15,6 +15,7 @@ let currentView = "bookmarks";
 // Track currently expanded card details
 let currentExpandedBookmarkDetails = null;
 let currentExpandedBookmarkButton = null;
+let currentExpandedBookmarkId = null;
 let currentExpandedProjectDetails = null;
 let currentExpandedProjectButton = null;
 
@@ -1809,6 +1810,7 @@ function renderProjectList() {
 function createBookmarkListItem(b) {
   const item = document.createElement("div");
   item.className = "bookmark-item";
+  item.dataset.bookmarkId = b.id;
   
   const header = document.createElement("div");
   header.className = "bookmark-item-header";
@@ -1868,6 +1870,7 @@ function createBookmarkListItem(b) {
   const toggleButton = document.createElement("button");
   toggleButton.type = "button";
   toggleButton.className = "bookmark-icon-button";
+  toggleButton.classList.add("bookmark-toggle-button");
   toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
   toggleButton.title = "View details";
   
@@ -2061,9 +2064,11 @@ function createBookmarkListItem(b) {
     if (details.hidden) {
       currentExpandedBookmarkDetails = null;
       currentExpandedBookmarkButton = null;
+      currentExpandedBookmarkId = null;
     } else {
       currentExpandedBookmarkDetails = details;
       currentExpandedBookmarkButton = toggleButton;
+      currentExpandedBookmarkId = b.id;
     }
   };
   
@@ -2081,6 +2086,9 @@ function renderBookmarkList() {
 
   const allBookmarks = getBookmarks();
   const summary = document.getElementById("bookmarkSummary");
+  const drawer = document.getElementById("libraryDrawer");
+  const scrollTop = drawer ? drawer.scrollTop : 0;
+  const expandedBookmarkId = currentExpandedBookmarkId;
 
   list.innerHTML = "";
 
@@ -2109,12 +2117,14 @@ function renderBookmarkList() {
         ? "No bookmarks match this filter."
         : "No bookmarks yet.";
       list.appendChild(empty);
+      restoreBookmarkListView(list, expandedBookmarkId, scrollTop);
       return;
     }
 
     bookmarks.forEach((b) => {
       list.appendChild(createBookmarkListItem(b));
     });
+    restoreBookmarkListView(list, expandedBookmarkId, scrollTop);
     return;
   }
 
@@ -2172,6 +2182,34 @@ function renderBookmarkList() {
   } else {
     generalBookmarks.forEach((b) => {
       list.appendChild(createBookmarkListItem(b));
+    });
+  }
+
+  restoreBookmarkListView(list, expandedBookmarkId, scrollTop);
+}
+
+function restoreBookmarkListView(list, expandedBookmarkId, scrollTop) {
+  if (expandedBookmarkId) {
+    const selector = `[data-bookmark-id="${CSS.escape(expandedBookmarkId)}"]`;
+    const item = list.querySelector(selector);
+    if (item) {
+      const details = item.querySelector(".bookmark-item-details");
+      const toggleButton = item.querySelector(".bookmark-toggle-button");
+      if (details && toggleButton) {
+        details.hidden = false;
+        toggleButton.innerText = "Hide";
+        currentExpandedBookmarkDetails = details;
+        currentExpandedBookmarkButton = toggleButton;
+      }
+    } else {
+      currentExpandedBookmarkId = null;
+    }
+  }
+
+  const drawer = document.getElementById("libraryDrawer");
+  if (drawer) {
+    requestAnimationFrame(() => {
+      drawer.scrollTop = scrollTop;
     });
   }
 }
