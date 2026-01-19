@@ -215,6 +215,11 @@ body {
 
 #results {
   margin-top: 10px;
+  display: none;
+}
+
+#results.is-visible {
+  display: block;
 }
 
 .small-note {
