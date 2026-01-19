@@ -602,18 +602,25 @@ Provide only the abstract, nothing else.`;
   }
 
   try {
+    const requestBody = {
+      model: settings.model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: settings.temperature,
+    };
+
+    if (settings.model.startsWith("gpt-5")) {
+      requestBody.max_completion_tokens = settings.maxTokens;
+    } else {
+      requestBody.max_tokens = settings.maxTokens;
+    }
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${settings.apiKey}`,
       },
-      body: JSON.stringify({
-        model: settings.model,
-        messages: [{ role: "user", content: prompt }],
-        temperature: settings.temperature,
-        max_tokens: settings.maxTokens,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
