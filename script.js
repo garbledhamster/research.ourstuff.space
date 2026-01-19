@@ -87,18 +87,30 @@ function setActiveProjectId(projectId) {
   activeProjectId = projectId;
 }
 
-function createProject(name, description = "") {
+function createProject(name, description = "", gptInstruction = "") {
   const projects = getProjects();
   const newProject = {
     id: `project_${Date.now()}`,
     name,
     description,
+    gptInstruction,
     createdAt: Date.now(),
     paperIds: []
   };
   projects.push(newProject);
   saveProjects(projects);
   return newProject;
+}
+
+function updateProject(projectId, name, description, gptInstruction) {
+  const projects = getProjects().map(p => {
+    if (p.id === projectId) {
+      return { ...p, name, description, gptInstruction };
+    }
+    return p;
+  });
+  saveProjects(projects);
+  renderCurrentView();
 }
 
 function deleteProject(projectId) {
@@ -523,6 +535,16 @@ async function generateResearchNote(bookmarkId, templateId) {
     statusElement.innerText = "Chatty is thinking...";
   }
 
+  // Get active project's GPT instruction if available
+  let projectInstruction = "";
+  if (activeProjectId) {
+    const projects = getProjects();
+    const activeProject = projects.find(p => p.id === activeProjectId);
+    if (activeProject && activeProject.gptInstruction) {
+      projectInstruction = activeProject.gptInstruction;
+    }
+  }
+
   // Determine what to generate based on settings
   let prompt;
   let isAbstraction = false;
@@ -534,7 +556,13 @@ async function generateResearchNote(bookmarkId, templateId) {
     
     if (hasOriginalAbstract) {
       // Rewrite existing abstract
-      prompt = `You are a research assistant. Rewrite the following academic paper abstract in your own words while preserving all key information. Keep it concise and academic in tone.
+      prompt = `You are a research assistant. Rewrite the following academic paper abstract in your own words while preserving all key information. Keep it concise and academic in tone.`;
+      
+      if (projectInstruction) {
+        prompt += `\n\nAdditional instructions: ${projectInstruction}`;
+      }
+      
+      prompt += `
 
 Title: ${bookmark.title}
 Authors: ${bookmark.authors || "Unknown"}
@@ -546,7 +574,13 @@ ${bookmark.abstract}
 Provide only the rewritten abstract, nothing else.`;
     } else {
       // Generate new abstract
-      prompt = `You are a research assistant. Based on the title and authors of the following academic paper, write a brief abstract that describes what the paper likely covers. Keep it concise and academic in tone.
+      prompt = `You are a research assistant. Based on the title and authors of the following academic paper, write a brief abstract that describes what the paper likely covers. Keep it concise and academic in tone.`;
+      
+      if (projectInstruction) {
+        prompt += `\n\nAdditional instructions: ${projectInstruction}`;
+      }
+      
+      prompt += `
 
 Title: ${bookmark.title}
 Authors: ${bookmark.authors || "Unknown"}
@@ -559,6 +593,11 @@ Provide only the abstract, nothing else.`;
     const selectedTemplate = templateId || settings.defaultTemplate;
     const template = AI_TEMPLATES[selectedTemplate] || AI_TEMPLATES[DEFAULT_TEMPLATE];
     prompt = template.prompt(bookmark);
+    
+    // Append project instruction if available
+    if (projectInstruction) {
+      prompt += `\n\nAdditional instructions: ${projectInstruction}`;
+    }
   }
 
   try {
@@ -1595,41 +1634,74 @@ function closeProjectModal() {
   }
 }
 
+function showEditProjectDialog(projectId) {
+  const projects = getProjects();
+  const project = projects.find(p => p.id === projectId);
+  if (!project) return;
+  
+  const nameInput = document.getElementById('edit-project-name-input');
+  const descriptionInput = document.getElementById('edit-project-description-input');
+  const gptInstructionInput = document.getElementById('edit-project-gpt-instruction-input');
+  
+  if (nameInput) nameInput.value = project.name || '';
+  if (descriptionInput) descriptionInput.value = project.description || '';
+  if (gptInstructionInput) gptInstructionInput.value = project.gptInstruction || '';
+  
+  const modal = document.getElementById('modal-edit-project');
+  if (modal) {
+    modal.dataset.projectId = projectId;
+    modal.classList.add('is-open');
+    requestAnimationFrame(() => {
+      if (nameInput) nameInput.focus();
+    });
+  }
+}
+
+function closeEditProjectModal() {
+  const modal = document.getElementById('modal-edit-project');
+  if (modal) {
+    modal.classList.remove('is-open');
+    delete modal.dataset.projectId;
+  }
+}
+
 // Handle project creation form submission
 function initializeProjectModal() {
-  const submitBtn = document.getElementById('create-project-submit');
-  const form = document.getElementById('create-project-form');
-  const modal = document.getElementById('modal-create-project');
+  const createSubmitBtn = document.getElementById('create-project-submit');
+  const createForm = document.getElementById('create-project-form');
+  const createModal = document.getElementById('modal-create-project');
   
-  if (!submitBtn || !form) return;
-  
-  submitBtn.onclick = (e) => {
-    e.preventDefault();
-    
-    const nameInput = document.getElementById('project-name-input');
-    const descriptionInput = document.getElementById('project-description-input');
-    
-    const name = nameInput?.value.trim() || '';
-    const description = descriptionInput?.value.trim() || '';
-    
-    if (!name) {
-      nameInput?.focus();
-      return;
-    }
-    
-    // Create the project
-    createProject(name, description);
-    
-    // Close modal
-    closeProjectModal();
-    
-    // Render the updated project list
-    renderProjectList();
-  };
+  if (createSubmitBtn && createForm) {
+    createSubmitBtn.onclick = (e) => {
+      e.preventDefault();
+      
+      const nameInput = document.getElementById('project-name-input');
+      const descriptionInput = document.getElementById('project-description-input');
+      const gptInstructionInput = document.getElementById('project-gpt-instruction-input');
+      
+      const name = nameInput?.value.trim() || '';
+      const description = descriptionInput?.value.trim() || '';
+      const gptInstruction = gptInstructionInput?.value.trim() || '';
+      
+      if (!name) {
+        nameInput?.focus();
+        return;
+      }
+      
+      // Create the project
+      createProject(name, description, gptInstruction);
+      
+      // Close modal
+      closeProjectModal();
+      
+      // Render the updated project list
+      renderProjectList();
+    };
+  }
   
   // Close modal when clicking overlay
-  if (modal) {
-    const overlay = modal.querySelector('.modal__overlay');
+  if (createModal) {
+    const overlay = createModal.querySelector('.modal__overlay');
     if (overlay) {
       overlay.onclick = (e) => {
         if (e.target === overlay) {
@@ -1639,9 +1711,64 @@ function initializeProjectModal() {
     }
     
     // Handle Escape key for this specific modal
-    modal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+    createModal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && createModal.classList.contains('is-open')) {
         closeProjectModal();
+      }
+    });
+  }
+  
+  // Initialize edit project modal
+  const editSubmitBtn = document.getElementById('edit-project-submit');
+  const editForm = document.getElementById('edit-project-form');
+  const editModal = document.getElementById('modal-edit-project');
+  
+  if (editSubmitBtn && editForm) {
+    editSubmitBtn.onclick = (e) => {
+      e.preventDefault();
+      
+      const projectId = editModal?.dataset.projectId;
+      if (!projectId) return;
+      
+      const nameInput = document.getElementById('edit-project-name-input');
+      const descriptionInput = document.getElementById('edit-project-description-input');
+      const gptInstructionInput = document.getElementById('edit-project-gpt-instruction-input');
+      
+      const name = nameInput?.value.trim() || '';
+      const description = descriptionInput?.value.trim() || '';
+      const gptInstruction = gptInstructionInput?.value.trim() || '';
+      
+      if (!name) {
+        nameInput?.focus();
+        return;
+      }
+      
+      // Update the project
+      updateProject(projectId, name, description, gptInstruction);
+      
+      // Close modal
+      closeEditProjectModal();
+      
+      // Render the updated project list
+      renderProjectList();
+    };
+  }
+  
+  // Close modal when clicking overlay
+  if (editModal) {
+    const overlay = editModal.querySelector('.modal__overlay');
+    if (overlay) {
+      overlay.onclick = (e) => {
+        if (e.target === overlay) {
+          closeEditProjectModal();
+        }
+      };
+    }
+    
+    // Handle Escape key for this specific modal
+    editModal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && editModal.classList.contains('is-open')) {
+        closeEditProjectModal();
       }
     });
   }
@@ -1697,6 +1824,17 @@ function renderProjectList() {
     const actions = document.createElement("div");
     actions.className = "project-item-actions";
     
+    // Add Edit button with pencil icon
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "project-icon-button";
+    editButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    editButton.title = "Edit project";
+    editButton.onclick = (event) => {
+      event.stopPropagation();
+      showEditProjectDialog(project.id);
+    };
+    
     // Add Set Active or Deactivate button
     const activeButton = document.createElement("button");
     activeButton.type = "button";
@@ -1736,6 +1874,7 @@ function renderProjectList() {
       }
     };
 
+    actions.appendChild(editButton);
     actions.appendChild(activeButton);
     actions.appendChild(toggleButton);
     actions.appendChild(deleteButton);
