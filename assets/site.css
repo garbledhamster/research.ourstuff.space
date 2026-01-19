@@ -208,6 +208,7 @@ textarea:focus {
 button {
   cursor: pointer;
   font-weight: 600;
+  color: var(--font-color);
   transition: background 150ms var(--ease-3), border-color 150ms var(--ease-3),
               opacity 150ms var(--ease-3), transform 150ms var(--ease-3);
 }
