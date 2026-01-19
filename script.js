@@ -31,7 +31,6 @@ const DEFAULT_TEMPLATE = 'paragraph';
 // Constants for abstract validation
 const MIN_ABSTRACT_LENGTH = 30;
 const INVALID_ABSTRACT_TEXT = "Abstract not available";
-const DEFAULT_TEMPLATE = 'paragraph';
 
 // Helper function to check if an abstract is valid
 function hasValidAbstract(abstract) {
