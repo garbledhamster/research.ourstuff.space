@@ -385,6 +385,7 @@ body {
   padding: 8px 10px;
   border-top: 1px solid var(--border-color);
   background: var(--surface-1);
+  position: relative;
   /* Drawer animation */
   max-height: 0;
   opacity: 0;
@@ -403,6 +404,7 @@ body {
     transform: translateY(0);
     padding-top: 8px;
     padding-bottom: 8px;
+    overflow: visible;
   }
 }
 
@@ -413,6 +415,7 @@ body {
   transform: translateY(0);
   padding-top: 8px;
   padding-bottom: 8px;
+  overflow: visible;
 }
 
 .bookmark-icon-button {
@@ -779,7 +782,7 @@ body {
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 240px;
-  z-index: 1000;
+  z-index: 2000;
   overflow: hidden;
 }
 
