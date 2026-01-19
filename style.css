@@ -116,7 +116,7 @@ body {
     transform: translateX(-50%);
     padding: 0.5rem 0.75rem;
     background: rgba(0, 0, 0, 0.85);
-    color: var(--dark-slate);
+    color: white;
     font-size: 0.75rem;
     border-radius: 6px;
     white-space: nowrap;
@@ -383,7 +383,7 @@ body {
 
 .bookmark-icon-button.bookmark-danger:hover {
   background: var(--danger-strong);
-  color: var(--dark-slate);
+  color: white;
 }
 
 .bookmark-icon-button svg {
