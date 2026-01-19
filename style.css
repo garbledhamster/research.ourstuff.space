@@ -235,7 +235,7 @@ body {
   align-items: center;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: clamp(0.65rem, 0.3vw + 0.58rem, 0.75rem);
   font-weight: 600;
   text-decoration: none;
 }
