@@ -165,16 +165,6 @@ function renderHighlightedText(text, highlights) {
   return result;
 }
 
-function applyBookmarkHighlightStyle(element, highlightColor) {
-  Object.values(HIGHLIGHT_CLASS_MAP).forEach((className) => {
-    element.classList.remove(className);
-  });
-
-  if (highlightColor && HIGHLIGHT_CLASS_MAP[highlightColor]) {
-    element.classList.add(HIGHLIGHT_CLASS_MAP[highlightColor]);
-  }
-}
-
 function getGoogleSettings() {
   return {
     apiKey: localStorage.getItem("googleApiKey") || "",
@@ -189,24 +179,21 @@ function setGoogleSettings(apiKey, cx) {
 
 function getHighlightSettings() {
   return {
-    enableHighlighting: localStorage.getItem("enableHighlighting") === "true",
     defaultHighlightColor: localStorage.getItem("defaultHighlightColor") || "pastel-yellow"
   };
 }
 
-function setHighlightSettings(enableHighlighting, defaultHighlightColor) {
-  localStorage.setItem("enableHighlighting", String(enableHighlighting));
+function setHighlightSettings(defaultHighlightColor) {
   localStorage.setItem("defaultHighlightColor", defaultHighlightColor);
 }
 
 function saveHighlightSettings() {
-  const enableHighlighting = document.getElementById("enableHighlighting")?.checked || false;
   const defaultHighlightColor = document.getElementById("defaultHighlightColor")?.value || "pastel-yellow";
   
-  setHighlightSettings(enableHighlighting, defaultHighlightColor);
+  setHighlightSettings(defaultHighlightColor);
   
   // Show feedback
-  const section = document.getElementById("enableHighlighting")?.closest('.settings-section');
+  const section = document.getElementById("defaultHighlightColor")?.closest('.settings-section');
   if (section) {
     const note = section.querySelector('.settings-note');
     if (note) {
@@ -354,13 +341,6 @@ function filterBookmarks(bookmarks) {
 function updateBookmarkNote(id, note) {
   const bookmarks = getBookmarks().map((entry) =>
     entry.id === id ? { ...entry, note } : entry
-  );
-  saveBookmarks(bookmarks);
-}
-
-function updateBookmarkHighlight(id, highlightColor) {
-  const bookmarks = getBookmarks().map((entry) =>
-    entry.id === id ? { ...entry, highlightColor } : entry
   );
   saveBookmarks(bookmarks);
 }
@@ -1518,16 +1498,12 @@ async function toggleBookmark(entry, btn) {
     bookmarks = bookmarks.filter((b) => b.id !== entry.id);
     btn.style.color = "";
   } else {
-    const highlightSettings = getHighlightSettings();
     const pendingEntry = {
       ...entry,
       createdAt: Date.now(),
       googleLinks: [],
       googleLinksStatus: "pending",
       note: "",
-      highlightColor: highlightSettings.enableHighlighting
-        ? highlightSettings.defaultHighlightColor
-        : null,
       textHighlights: []
     };
     bookmarks.push(pendingEntry);
@@ -1783,12 +1759,8 @@ function createSettingsDrawer() {
         Highlighting Preferences
       </div>
       <div class="settings-grid">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <input id="enableHighlighting" type="checkbox" name="enableHighlighting" />
-          <label for="enableHighlighting" style="margin: 0;">Enable highlights for bookmarks</label>
-        </div>
         <label for="defaultHighlightColor">
-          Default highlight color
+          Default text highlight color
           <select id="defaultHighlightColor" name="defaultHighlightColor">
             <option value="pastel-red">Pastel Red</option>
             <option value="pastel-blue">Pastel Blue</option>
@@ -1800,7 +1772,7 @@ function createSettingsDrawer() {
         <button type="button" onclick="saveHighlightSettings()" style="width: 100%;">Save Highlight Settings</button>
       </div>
       <div class="settings-note">
-        Choose whether new bookmarks should be highlighted by default and which pastel color to use.
+        Choose the default color used when highlighting selected text in bookmarks.
       </div>
     </div>
 
@@ -2238,7 +2210,6 @@ function renderBookmarkList() {
   bookmarks.forEach((b) => {
     const item = document.createElement("div");
     item.className = "bookmark-item";
-    applyBookmarkHighlightStyle(item, b.highlightColor);
 
     const header = document.createElement("div");
     header.className = "bookmark-item-header";
@@ -2445,41 +2416,6 @@ function renderBookmarkList() {
       </div>
     `;
 
-    const highlightTemplate = document.getElementById("bookmarkHighlightControls");
-    if (highlightTemplate) {
-      const highlightControls = highlightTemplate.content.cloneNode(true);
-      const highlightSelect = highlightControls.querySelector(
-        'select[name="bookmarkHighlightColor"]'
-      );
-      const highlightApplyButton = highlightControls.querySelector(
-        ".bookmark-apply-highlight"
-      );
-      const highlightClearButton = highlightControls.querySelector(
-        ".bookmark-clear-highlight"
-      );
-
-      if (highlightSelect) {
-        highlightSelect.value = b.highlightColor || highlightSelect.value;
-      }
-
-      if (highlightApplyButton) {
-        highlightApplyButton.addEventListener("click", () => {
-          const selectedColor = highlightSelect ? highlightSelect.value : null;
-          updateBookmarkHighlight(b.id, selectedColor);
-          applyBookmarkHighlightStyle(item, selectedColor);
-        });
-      }
-
-      if (highlightClearButton) {
-        highlightClearButton.addEventListener("click", () => {
-          updateBookmarkHighlight(b.id, null);
-          applyBookmarkHighlightStyle(item, null);
-        });
-      }
-
-      details.appendChild(highlightControls);
-    }
-
     const noteInput = details.querySelector("textarea");
     if (noteInput) {
       noteInput.value = b.note || "";
@@ -2618,9 +2554,7 @@ function initializeSettings() {
 
   // Load Highlight settings
   const highlightSettings = getHighlightSettings();
-  const enableHighlightingInput = document.getElementById("enableHighlighting");
   const defaultHighlightColorInput = document.getElementById("defaultHighlightColor");
-  if (enableHighlightingInput) enableHighlightingInput.checked = highlightSettings.enableHighlighting;
   if (defaultHighlightColorInput) defaultHighlightColorInput.value = highlightSettings.defaultHighlightColor;
 }
 
