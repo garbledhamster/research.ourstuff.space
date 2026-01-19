@@ -1438,6 +1438,7 @@ function createSettingsDrawer() {
       <div id="openaiConfigPanel" style="display: none;">
         <div class="settings-grid">
           <select id="openaiModel" title="ChatGPT Model">
+            <option value="gpt-5-mini">GPT-5 Mini</option>
             <option value="gpt-4o-mini">GPT-4o Mini (Fast & Affordable)</option>
             <option value="gpt-4o">GPT-4o (Recommended)</option>
             <option value="gpt-4-turbo">GPT-4 Turbo</option>
