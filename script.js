@@ -2312,7 +2312,10 @@ function renderBookmarkList() {
     }
 
     // Setup project assignment dropdown
-    const projectSelect = details.querySelector(`#project-select-${b.id}`);
+    const projectSelectId = `project-select-${b.id}`;
+    const projectSelect = details.querySelector(
+      `#${CSS.escape(projectSelectId)}`
+    );
     if (projectSelect) {
       const projects = getProjects();
       
