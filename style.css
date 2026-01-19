@@ -420,6 +420,16 @@ body {
   display: block;
 }
 
+.bookmark-action-button {
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.bookmark-action-button span {
+  white-space: nowrap;
+}
+
 .bookmark-item-details {
   margin-top: 8px;
 }
