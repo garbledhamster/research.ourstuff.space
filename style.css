@@ -771,7 +771,8 @@ body {
   display: none;
   position: absolute;
   bottom: 100%;
-  right: 0;
+  left: 0;
+  right: auto;
   margin-bottom: 4px;
   background: white;
   border: 1px solid var(--border-color);
