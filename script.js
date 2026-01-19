@@ -48,22 +48,21 @@ function saveBookmarks(data) {
   localStorage.setItem("researchBookmarks", JSON.stringify(data));
 }
 
-const HIGHLIGHT_COLORS = {
-  "pastel-red": "#fde2e2",
-  "pastel-blue": "#dbeafe",
-  "pastel-yellow": "#fef3c7",
-  "pastel-green": "#dcfce7",
-  "pastel-grey": "#e5e7eb"
+const HIGHLIGHT_CLASS_MAP = {
+  "pastel-red": "highlight-pastel-red",
+  "pastel-blue": "highlight-pastel-blue",
+  "pastel-yellow": "highlight-pastel-yellow",
+  "pastel-green": "highlight-pastel-green",
+  "pastel-grey": "highlight-pastel-grey"
 };
 
 function applyBookmarkHighlightStyle(element, highlightColor) {
-  const color = highlightColor ? HIGHLIGHT_COLORS[highlightColor] : "";
-  if (color) {
-    element.style.backgroundColor = color;
-    element.style.borderColor = "color-mix(in srgb, #000, transparent 85%)";
-  } else {
-    element.style.backgroundColor = "";
-    element.style.borderColor = "";
+  Object.values(HIGHLIGHT_CLASS_MAP).forEach((className) => {
+    element.classList.remove(className);
+  });
+
+  if (highlightColor && HIGHLIGHT_CLASS_MAP[highlightColor]) {
+    element.classList.add(HIGHLIGHT_CLASS_MAP[highlightColor]);
   }
 }
 
