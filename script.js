@@ -1891,7 +1891,7 @@ function renderProjectList() {
 
   projects.forEach((project) => {
     const item = document.createElement("div");
-    item.className = "project-item";
+    item.className = "project-item item-card";
 
     const bookmarks = getBookmarks();
     const projectPapers = bookmarks.filter(b => project.paperIds.includes(b.id));
@@ -1912,14 +1912,15 @@ function renderProjectList() {
     }
 
     const actions = document.createElement("div");
-    actions.className = "project-item-actions";
+    actions.className = "project-item-actions item-actions";
     
     // Add Edit button with pencil icon
     const editButton = document.createElement("button");
     editButton.type = "button";
-    editButton.className = "project-icon-button";
+    editButton.className = "project-icon-button tooltip-button";
     editButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
     editButton.title = "Edit project";
+    editButton.setAttribute("aria-label", "Edit project");
     editButton.onclick = (event) => {
       event.stopPropagation();
       showEditProjectDialog(project.id);
@@ -1928,10 +1929,12 @@ function renderProjectList() {
     // Add Set Active or Deactivate button
     const activeButton = document.createElement("button");
     activeButton.type = "button";
-    activeButton.className = "project-ghost-button";
+    activeButton.className = "project-ghost-button tooltip-button";
     
     if (activeProjectId === project.id) {
-      activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span>Deactivate</span>`;
+      activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+      activeButton.title = "Deactivate project";
+      activeButton.setAttribute("aria-label", "Deactivate project");
       activeButton.onclick = (event) => {
         event.stopPropagation();
         setActiveProjectId(null);
@@ -1939,7 +1942,9 @@ function renderProjectList() {
         renderBookmarkList(); // Update bookmark view
       };
     } else {
-      activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg><span>Set Active</span>`;
+      activeButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>`;
+      activeButton.title = "Set active project";
+      activeButton.setAttribute("aria-label", "Set active project");
       activeButton.onclick = (event) => {
         event.stopPropagation();
         setActiveProjectId(project.id);
@@ -1950,13 +1955,17 @@ function renderProjectList() {
 
     const toggleButton = document.createElement("button");
     toggleButton.type = "button";
-    toggleButton.className = "project-ghost-button";
-    toggleButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>Details</span>`;
+    toggleButton.className = "project-ghost-button tooltip-button";
+    toggleButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    toggleButton.title = "Show details";
+    toggleButton.setAttribute("aria-label", "Show details");
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
-    deleteButton.className = "project-danger-button";
-    deleteButton.innerText = "Delete";
+    deleteButton.className = "project-danger-button tooltip-button";
+    deleteButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+    deleteButton.title = "Delete project";
+    deleteButton.setAttribute("aria-label", "Delete project");
     deleteButton.onclick = (event) => {
       event.stopPropagation();
       if (confirm(`Delete project "${project.name}"?`)) {
@@ -1970,7 +1979,6 @@ function renderProjectList() {
     actions.appendChild(deleteButton);
 
     header.appendChild(title);
-    header.appendChild(actions);
 
     const meta = document.createElement("div");
     meta.className = "project-item-meta";
@@ -2000,8 +2008,10 @@ function renderProjectList() {
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
-        removeBtn.className = "project-paper-remove";
-        removeBtn.innerText = "Remove";
+        removeBtn.className = "project-paper-remove tooltip-button";
+        removeBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+        removeBtn.title = "Remove paper";
+        removeBtn.setAttribute("aria-label", "Remove paper");
         removeBtn.onclick = () => {
           removePaperFromProject(project.id, paper.id);
         };
@@ -2018,15 +2028,19 @@ function renderProjectList() {
       if (currentExpandedProjectDetails && currentExpandedProjectDetails !== details) {
         currentExpandedProjectDetails.hidden = true;
         if (currentExpandedProjectButton) {
-          currentExpandedProjectButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>Details</span>`;
+          currentExpandedProjectButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+          currentExpandedProjectButton.title = "Show details";
+          currentExpandedProjectButton.setAttribute("aria-label", "Show details");
         }
       }
 
       // Toggle current card
       details.hidden = !details.hidden;
       toggleButton.innerHTML = details.hidden
-        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>Details</span>`
-        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="3 3 21 21"/><polyline points="15 3 21 3 21 9"/></svg><span>Hide</span>`;
+        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
+        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="3 3 21 21"/><polyline points="15 3 21 3 21 9"/></svg>`;
+      toggleButton.title = details.hidden ? "Show details" : "Hide details";
+      toggleButton.setAttribute("aria-label", toggleButton.title);
 
       // Update tracking
       if (details.hidden) {
@@ -2041,13 +2055,15 @@ function renderProjectList() {
     item.appendChild(header);
     item.appendChild(meta);
     item.appendChild(details);
+    item.appendChild(actions);
     list.appendChild(item);
+    attachMobileActionsToggle(item);
   });
 }
 
 function createBookmarkListItem(b, options = {}) {
   const item = document.createElement("div");
-  item.className = "bookmark-item";
+  item.className = "bookmark-item item-card";
   item.dataset.bookmarkId = b.id;
   const {
     showAddToActiveProject = false,
@@ -2063,7 +2079,7 @@ function createBookmarkListItem(b, options = {}) {
   title.textContent = b.title || "Untitled";
   
   const actions = document.createElement("div");
-  actions.className = "bookmark-item-actions";
+  actions.className = "bookmark-item-actions item-actions";
   
   // Generate button with dropdown
   const generateButtonContainer = document.createElement("div");
@@ -2421,26 +2437,25 @@ function createBookmarkListItem(b, options = {}) {
   item.appendChild(details);
   item.appendChild(actions);
   
-  // Add click handler for mobile to toggle navbar visibility
-  // Only on mobile (check if touch device)
-  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+  attachMobileActionsToggle(item);
   
+  return item;
+}
+
+function attachMobileActionsToggle(item) {
+  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
   item.addEventListener('click', (event) => {
-    // Only handle on mobile devices
     if (!isMobile()) return;
-    
-    // Don't toggle if clicking on a button or interactive element
-    if (event.target.closest('button') || event.target.closest('a') || 
-        event.target.closest('input') || event.target.closest('textarea') || 
+
+    if (event.target.closest('button') || event.target.closest('a') ||
+        event.target.closest('input') || event.target.closest('textarea') ||
         event.target.closest('select')) {
       return;
     }
-    
-    // Toggle the actions visibility
+
     item.classList.toggle('actions-visible');
   });
-  
-  return item;
 }
 
 function renderBookmarkList() {

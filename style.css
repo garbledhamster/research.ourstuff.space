@@ -13,12 +13,13 @@ body {
   top: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 0.75rem 1.5rem;
   background: var(--surface-1);
   border-bottom: 1px solid var(--border-color);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   z-index: 900;
+  gap: 1.5rem;
 }
 
 .navbar-brand {
@@ -45,6 +46,8 @@ body {
 .navbar-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .navbar-button {
@@ -96,7 +99,7 @@ body {
 
   .navbar-actions {
     width: 100%;
-    justify-content: space-around;
+    justify-content: flex-start;
     gap: 0;
   }
 
@@ -289,10 +292,11 @@ body {
   margin-bottom: 12px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 4px;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .nav-tab {
-  flex: 1;
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 600;
@@ -377,7 +381,7 @@ body {
   color: var(--font-color);
 }
 
-.bookmark-item-actions {
+.item-actions {
   display: flex;
   justify-content: flex-start;
   gap: 6px;
@@ -398,7 +402,7 @@ body {
 
 /* Show navbar on hover for desktop */
 @media (min-width: 769px) {
-  .bookmark-item:hover .bookmark-item-actions {
+  .item-card:hover .item-actions {
     max-height: 100px;
     opacity: 1;
     transform: translateY(0);
@@ -409,7 +413,7 @@ body {
 }
 
 /* Show navbar when active class is present (for mobile) */
-.bookmark-item.actions-visible .bookmark-item-actions {
+.item-card.actions-visible .item-actions {
   max-height: 100px;
   opacity: 1;
   transform: translateY(0);
@@ -616,13 +620,15 @@ body {
 }
 
 .project-item-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  margin-top: 8px;
 }
 
-.project-icon-button {
-  padding: 6px 8px;
+.project-icon-button,
+.project-ghost-button,
+.project-danger-button {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -634,37 +640,52 @@ body {
   color: var(--font-color);
 }
 
-.project-icon-button:hover {
+.project-icon-button:hover,
+.project-ghost-button:hover,
+.project-danger-button:hover {
   background: var(--surface-2);
   border-color: var(--border-color);
   color: var(--font-color);
 }
 
-.project-icon-button svg {
+.project-icon-button svg,
+.project-ghost-button svg,
+.project-danger-button svg {
   display: block;
-}
-
-.project-ghost-button,
-.project-danger-button {
-  padding: 4px 10px;
-  font-size: 12px;
-  font-family: inherit;
-  font-variation-settings: inherit;
-  font-weight: 600;
-  border-radius: 999px;
-  border: 1px solid var(--border-color);
-  background: #fff;
-  cursor: pointer;
-  color: var(--font-color);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .project-danger-button {
   color: var(--font-color);
   border-color: var(--border-color);
   background: #fff5f5;
+}
+
+.tooltip-button {
+  position: relative;
+}
+
+.tooltip-button::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, -6px);
+  padding: 0.35rem 0.6rem;
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--font-color);
+  font-size: 0.7rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 2;
+}
+
+.tooltip-button:hover::after,
+.tooltip-button:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, -10px);
 }
 
 .project-item-details {
@@ -703,16 +724,17 @@ body {
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-family: inherit;
-  font-variation-settings: inherit;
-  font-weight: 600;
-  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
   border: 1px solid var(--border-color);
   background: #fff5f5;
   color: var(--font-color);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Settings drawer */
