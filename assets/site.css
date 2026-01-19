@@ -14,16 +14,18 @@
   --surface-overlay: rgba(0, 0, 0, 0.3);
 
   /* Text colors */
-  --text-1: #0f172a;
-  --text-2: #475569;
-  --text-3: #64748b;
-  --text-4: #94a3b8;
-  --dark-slate: #334155;
+  --font-color: #334155;
+  --text-1: var(--font-color);
+  --text-2: var(--font-color);
+  --text-3: var(--font-color);
+  --text-4: var(--font-color);
+  --dark-slate: var(--font-color);
 
   /* Border colors */
-  --border-subtle: color-mix(in srgb, var(--text-1), transparent 88%);
-  --border-light: #475569;
-  --border-medium: #334155;
+  --border-color: #334155;
+  --border-subtle: color-mix(in srgb, var(--border-color), transparent 88%);
+  --border-light: var(--border-color);
+  --border-medium: var(--border-color);
 
   /* Shadow colors */
   --shadow-color: rgba(0, 0, 0, 0.2);
@@ -50,7 +52,7 @@ body {
     var(--surface-2) 45%,
     color-mix(in srgb, var(--surface-2), var(--text-4) 15%) 100%
   );
-  color: var(--text-1);
+  color: var(--font-color);
   line-height: 1.6;
 }
 
@@ -89,22 +91,22 @@ header {
 .advanced-panel select,
 .advanced-panel input {
   border-radius: var(--radius-2);
-  border: 1px solid color-mix(in srgb, var(--text-1), transparent 85%);
+  border: 1px solid var(--border-color);
   background: var(--surface-1);
 }
 
 .search-panel button,
 .advanced-panel button {
   background: var(--brand-soft);
-  color: var(--text-1);
-  border-color: var(--brand-border);
+  color: var(--font-color);
+  border-color: var(--border-color);
   font-weight: 600;
 }
 
 .search-panel button:hover,
 .advanced-panel button:hover {
   background: color-mix(in srgb, var(--brand), white 70%);
-  color: var(--text-1);
+  color: var(--font-color);
 }
 
 .search-panel button:focus-visible,
@@ -116,7 +118,7 @@ header {
 .search-panel select:focus,
 .advanced-panel input:focus,
 .advanced-panel select:focus {
-  border-color: color-mix(in srgb, var(--brand), transparent 40%);
+  border-color: var(--border-color);
   box-shadow: 0 0 0 var(--size-1) color-mix(in srgb, var(--brand), transparent 70%);
 }
 
@@ -144,13 +146,13 @@ select:focus-visible {
 }
 
 .title {
-  color: var(--text-1);
+  color: var(--font-color);
 }
 
 .adv-note,
 .meta,
 .small-note {
-  color: var(--text-2);
+  color: var(--font-color);
 }
 
 .adv-section {
@@ -161,11 +163,11 @@ select:focus-visible {
 }
 
 .help-links a {
-  color: var(--brand-strong);
+  color: var(--font-color);
 }
 
 .help-links .dot {
-  color: var(--text-2);
+  color: var(--font-color);
 }
 
 .card {
@@ -176,7 +178,7 @@ select:focus-visible {
 
 .pdf-pill {
   background: var(--brand-soft);
-  color: var(--brand-strong);
+  color: var(--font-color);
   border: 1px solid color-mix(in srgb, var(--brand), transparent 60%);
 }
 
@@ -190,7 +192,7 @@ select,
 textarea {
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
-  color: var(--text-1);
+  color: var(--font-color);
   border-radius: var(--radius-2);
   transition: border-color 150ms var(--ease-3), box-shadow 150ms var(--ease-3);
 }
@@ -198,7 +200,7 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--brand-border);
+  border-color: var(--border-color);
   outline: none;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand), transparent 70%);
 }
@@ -206,6 +208,7 @@ textarea:focus {
 button {
   cursor: pointer;
   font-weight: 600;
+  color: var(--font-color);
   transition: background 150ms var(--ease-3), border-color 150ms var(--ease-3),
               opacity 150ms var(--ease-3), transform 150ms var(--ease-3);
 }
@@ -225,12 +228,12 @@ button:active {
 
 .bookmark-ghost-button:hover {
   background: var(--surface-3);
-  border-color: var(--text-3);
+  border-color: var(--border-color);
 }
 
 .bookmark-danger-button:hover {
   background: color-mix(in srgb, var(--danger-light), var(--danger) 10%);
-  border-color: var(--danger);
+  border-color: var(--border-color);
 }
 
 @media (prefers-reduced-motion: reduce) {
