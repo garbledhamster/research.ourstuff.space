@@ -2087,7 +2087,7 @@ function createBookmarkListItem(b, options = {}) {
   
   const generateButton = document.createElement("button");
   generateButton.type = "button";
-  generateButton.className = "bookmark-icon-button";
+  generateButton.className = "bookmark-icon-button tooltip-button";
   generateButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`;
   generateButton.title = "Generate AI research note";
   
@@ -2128,13 +2128,13 @@ function createBookmarkListItem(b, options = {}) {
   
   const toggleButton = document.createElement("button");
   toggleButton.type = "button";
-  toggleButton.className = "bookmark-icon-button";
+  toggleButton.className = "bookmark-icon-button tooltip-button";
   toggleButton.classList.add("bookmark-toggle-button");
   setBookmarkToggleState(toggleButton, false);
   
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
-  deleteButton.className = "bookmark-icon-button bookmark-danger";
+  deleteButton.className = "bookmark-icon-button bookmark-danger tooltip-button";
   deleteButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
   deleteButton.title = "Delete bookmark";
   deleteButton.onclick = (event) => {
@@ -2145,70 +2145,14 @@ function createBookmarkListItem(b, options = {}) {
   if (showAddToActiveProject && activeProjectIdOption) {
     const addToProjectButton = document.createElement("button");
     addToProjectButton.type = "button";
-    addToProjectButton.className = "bookmark-icon-button bookmark-action-button";
+    addToProjectButton.className = "bookmark-icon-button tooltip-button";
     const tooltipLabel = activeProjectName
       ? `Add to ${activeProjectName}`
       : "Add to active project";
     addToProjectButton.setAttribute("aria-label", tooltipLabel);
+    addToProjectButton.title = tooltipLabel;
     addToProjectButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`;
-    const tooltip = document.createElement("span");
-    tooltip.className = "bookmark-tooltip";
-    const tooltipId = `bookmark-add-tooltip-${String(b.id).replace(
-      /[^a-zA-Z0-9_-]/g,
-      ""
-    )}`;
-    tooltip.id = tooltipId;
-    tooltip.role = "tooltip";
-    tooltip.textContent = tooltipLabel;
-    addToProjectButton.setAttribute("aria-describedby", tooltipId);
-    addToProjectButton.appendChild(tooltip);
-
-    let tooltipTimer = null;
-    let tooltipActive = false;
-
-    const showTooltip = () => {
-      addToProjectButton.classList.add("show-tooltip");
-      tooltipActive = true;
-    };
-
-    const hideTooltip = () => {
-      addToProjectButton.classList.remove("show-tooltip");
-      tooltipActive = false;
-    };
-
-    addToProjectButton.addEventListener("pointerdown", (event) => {
-      if (event.pointerType !== "touch") return;
-      tooltipTimer = window.setTimeout(showTooltip, 500);
-    });
-
-    const clearTooltipTimer = () => {
-      if (tooltipTimer) {
-        window.clearTimeout(tooltipTimer);
-        tooltipTimer = null;
-      }
-    };
-
-    addToProjectButton.addEventListener("pointerup", (event) => {
-      if (event.pointerType !== "touch") return;
-      clearTooltipTimer();
-      if (tooltipActive) {
-        window.setTimeout(hideTooltip, 1200);
-      }
-    });
-
-    addToProjectButton.addEventListener("pointerleave", clearTooltipTimer);
-    addToProjectButton.addEventListener("pointercancel", () => {
-      clearTooltipTimer();
-      hideTooltip();
-    });
-
     addToProjectButton.addEventListener("click", (event) => {
-      if (tooltipActive) {
-        event.preventDefault();
-        event.stopPropagation();
-        hideTooltip();
-        return;
-      }
       event.stopPropagation();
       addPaperToProject(activeProjectIdOption, b.id);
     });
