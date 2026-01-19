@@ -342,6 +342,31 @@ body {
   position: relative;
 }
 
+.bookmark-item.highlight-pastel-red {
+  background: #fde2e2;
+  border-color: color-mix(in srgb, #000, transparent 85%);
+}
+
+.bookmark-item.highlight-pastel-blue {
+  background: #dbeafe;
+  border-color: color-mix(in srgb, #000, transparent 85%);
+}
+
+.bookmark-item.highlight-pastel-yellow {
+  background: #fef3c7;
+  border-color: color-mix(in srgb, #000, transparent 85%);
+}
+
+.bookmark-item.highlight-pastel-green {
+  background: #dcfce7;
+  border-color: color-mix(in srgb, #000, transparent 85%);
+}
+
+.bookmark-item.highlight-pastel-grey {
+  background: #e5e7eb;
+  border-color: color-mix(in srgb, #000, transparent 85%);
+}
+
 .bookmark-item-header {
   display: flex;
   align-items: flex-start;
