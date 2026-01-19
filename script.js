@@ -56,6 +56,115 @@ const HIGHLIGHT_CLASS_MAP = {
   "pastel-grey": "highlight-pastel-grey"
 };
 
+function getBookmarkTextHighlights(bookmark, field) {
+  if (!bookmark || !Array.isArray(bookmark.textHighlights)) return [];
+  return bookmark.textHighlights.filter(
+    (highlight) => highlight && highlight.field === field && highlight.text
+  );
+}
+
+function addBookmarkTextHighlight(id, field, text, highlightColor) {
+  const trimmedText = String(text || "").trim();
+  if (!trimmedText || !field) return;
+
+  const bookmarks = getBookmarks().map((entry) => {
+    if (entry.id !== id) return entry;
+    const existingHighlights = Array.isArray(entry.textHighlights)
+      ? entry.textHighlights
+      : [];
+    const alreadyExists = existingHighlights.some(
+      (highlight) =>
+        highlight.field === field &&
+        highlight.text === trimmedText &&
+        highlight.color === highlightColor
+    );
+
+    if (alreadyExists) {
+      return entry;
+    }
+
+    const newHighlight = {
+      field,
+      text: trimmedText,
+      color: highlightColor || "pastel-yellow",
+      createdAt: Date.now()
+    };
+
+    return {
+      ...entry,
+      textHighlights: [...existingHighlights, newHighlight]
+    };
+  });
+
+  saveBookmarks(bookmarks);
+}
+
+function renderHighlightedText(text, highlights) {
+  const content = String(text || "");
+  if (!content) return "";
+
+  const validHighlights = Array.isArray(highlights) ? highlights : [];
+  if (validHighlights.length === 0) {
+    return escapeHtml(content);
+  }
+
+  const ranges = [];
+  validHighlights.forEach((highlight) => {
+    const highlightText = String(highlight.text || "");
+    if (!highlightText) return;
+
+    let startIndex = 0;
+    while (startIndex < content.length) {
+      const index = content.indexOf(highlightText, startIndex);
+      if (index === -1) break;
+      ranges.push({
+        start: index,
+        end: index + highlightText.length,
+        color: highlight.color || "pastel-yellow"
+      });
+      startIndex = index + highlightText.length;
+    }
+  });
+
+  if (ranges.length === 0) {
+    return escapeHtml(content);
+  }
+
+  ranges.sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start;
+    return b.end - a.end;
+  });
+
+  const mergedRanges = [];
+  ranges.forEach((range) => {
+    const last = mergedRanges[mergedRanges.length - 1];
+    if (!last || range.start >= last.end) {
+      mergedRanges.push(range);
+    }
+  });
+
+  let result = "";
+  let cursor = 0;
+
+  mergedRanges.forEach((range) => {
+    if (cursor < range.start) {
+      result += escapeHtml(content.slice(cursor, range.start));
+    }
+
+    const highlightClass = HIGHLIGHT_CLASS_MAP[range.color] || "highlight-pastel-yellow";
+    result += `<mark class="text-highlight ${highlightClass}">${escapeHtml(
+      content.slice(range.start, range.end)
+    )}</mark>`;
+    cursor = range.end;
+  });
+
+  if (cursor < content.length) {
+    result += escapeHtml(content.slice(cursor));
+  }
+
+  return result;
+}
+
 function applyBookmarkHighlightStyle(element, highlightColor) {
   Object.values(HIGHLIGHT_CLASS_MAP).forEach((className) => {
     element.classList.remove(className);
@@ -283,6 +392,8 @@ document.addEventListener('click', (event) => {
 
 // Text selection highlight popup functionality
 let currentSelectionBookmarkId = null;
+let currentSelectionText = "";
+let currentSelectionField = "";
 
 function showHighlightPopup(x, y, bookmarkId) {
   const popup = document.getElementById('textHighlightPopup');
@@ -325,6 +436,18 @@ function hideHighlightPopup() {
     popup.classList.remove('visible');
   }
   currentSelectionBookmarkId = null;
+  currentSelectionText = "";
+  currentSelectionField = "";
+}
+
+function getSelectionHighlightField(selection) {
+  if (!selection) return null;
+  const anchorNode = selection.anchorNode;
+  const element =
+    anchorNode && anchorNode.nodeType === Node.ELEMENT_NODE
+      ? anchorNode
+      : anchorNode?.parentElement;
+  return element?.closest('[data-highlight-field]')?.dataset.highlightField || null;
 }
 
 // Helper function to get displayed bookmarks (filtered and sorted)
@@ -360,6 +483,12 @@ document.addEventListener('mouseup', (event) => {
   const selectedText = selection.toString().trim();
   
   if (selectedText.length > 0) {
+    const highlightField = getSelectionHighlightField(selection);
+    if (!highlightField) {
+      hideHighlightPopup();
+      return;
+    }
+
     // Get the bookmark ID from the nearest bookmark item
     const bookmarkItems = Array.from(bookmarkList.querySelectorAll('.bookmark-item'));
     const bookmarkIndex = bookmarkItems.indexOf(bookmarkItem);
@@ -379,6 +508,8 @@ document.addEventListener('mouseup', (event) => {
         const y = rect.top + window.scrollY;
         
         showHighlightPopup(x, y, bookmarkId);
+        currentSelectionText = selectedText;
+        currentSelectionField = highlightField;
       }
     }
   } else {
@@ -402,10 +533,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const button = popup.querySelector('.highlight-popup-button');
     if (button) {
       button.addEventListener('click', () => {
-        if (currentSelectionBookmarkId) {
+        if (currentSelectionBookmarkId && currentSelectionText && currentSelectionField) {
           const settings = getHighlightSettings();
           const color = settings.defaultHighlightColor || 'pastel-yellow';
-          updateBookmarkHighlight(currentSelectionBookmarkId, color);
+          addBookmarkTextHighlight(
+            currentSelectionBookmarkId,
+            currentSelectionField,
+            currentSelectionText,
+            color
+          );
           renderBookmarkList();
           hideHighlightPopup();
         }
@@ -1382,13 +1518,17 @@ async function toggleBookmark(entry, btn) {
     bookmarks = bookmarks.filter((b) => b.id !== entry.id);
     btn.style.color = "";
   } else {
+    const highlightSettings = getHighlightSettings();
     const pendingEntry = {
       ...entry,
       createdAt: Date.now(),
       googleLinks: [],
       googleLinksStatus: "pending",
       note: "",
-      highlightColor: null
+      highlightColor: highlightSettings.enableHighlighting
+        ? highlightSettings.defaultHighlightColor
+        : null,
+      textHighlights: []
     };
     bookmarks.push(pendingEntry);
     btn.style.color = "var(--accent-bookmarked)";
@@ -2105,7 +2245,11 @@ function renderBookmarkList() {
 
     const title = document.createElement("div");
     title.className = "bookmark-item-title";
-    title.innerText = b.title || "Untitled";
+    title.dataset.highlightField = "title";
+    title.innerHTML = renderHighlightedText(
+      b.title || "Untitled",
+      getBookmarkTextHighlights(b, "title")
+    );
 
     const actions = document.createElement("div");
     actions.className = "bookmark-item-actions";
@@ -2180,7 +2324,11 @@ function renderBookmarkList() {
 
     const meta = document.createElement("div");
     meta.className = "bookmark-item-meta";
-    meta.innerText = [b.year, b.authors].filter(Boolean).join(" • ");
+    meta.dataset.highlightField = "meta";
+    meta.innerHTML = renderHighlightedText(
+      [b.year, b.authors].filter(Boolean).join(" • "),
+      getBookmarkTextHighlights(b, "meta")
+    );
 
     const details = document.createElement("div");
     details.className = "bookmark-item-details";
@@ -2212,9 +2360,10 @@ function renderBookmarkList() {
            <div class="chatty-header">
              <span class="chatty-name">🤖 Chatty</span>
            </div>
-           <div class="chatty-content" id="chatty-status-${b.id}">${escapeHtml(
-           b.aiSummary
-         )}</div>
+           <div class="chatty-content" id="chatty-status-${b.id}" data-highlight-field="aiSummary">${renderHighlightedText(
+             b.aiSummary,
+             getBookmarkTextHighlights(b, "aiSummary")
+           )}</div>
          </div>`
       : "";
 
@@ -2226,7 +2375,10 @@ function renderBookmarkList() {
            <div class="chatty-header">
              <span class="chatty-name">🤖 Abstraction</span>
            </div>
-           <div class="chatty-content" id="chatty-status-${b.id}">${escapeHtml(b.aiAbstract)}</div>
+           <div class="chatty-content" id="chatty-status-${b.id}" data-highlight-field="abstract">${renderHighlightedText(
+             b.aiAbstract,
+             getBookmarkTextHighlights(b, "abstract")
+           )}</div>
            <div class="chatty-warning">Generated with OpenAI, may be inaccurate</div>
          </div>`;
     } else if (hasValidAbstract(b.abstract)) {
@@ -2235,22 +2387,47 @@ function renderBookmarkList() {
            <div class="chatty-header">
              <span class="chatty-name">Abstraction</span>
            </div>
-           <div class="chatty-content">${escapeHtml(b.abstract)}</div>
+           <div class="chatty-content" data-highlight-field="abstract">${renderHighlightedText(
+             b.abstract,
+             getBookmarkTextHighlights(b, "abstract")
+           )}</div>
          </div>`;
     }
 
+    const detailHighlights = getBookmarkTextHighlights(b, "details");
+    const detailYearText = `${b.year || "Unknown"}${
+      b.publication_date ? ` (${b.publication_date})` : ""
+    }`;
+    const detailCitationsText =
+      b.cited_by_count != null ? `Citations: ${b.cited_by_count}` : "";
+    const detailDoiText = b.doi ? `DOI: ${b.doi}` : "";
+
     details.innerHTML = `
       <div class="bookmark-item-info">
-        <small>${b.year || "Unknown"}${
-      b.publication_date ? ` (${b.publication_date})` : ""
-    }</small>
-        <small>${escapeHtml(b.authors || "")}</small>
+        <small data-highlight-field="details">${renderHighlightedText(
+          detailYearText,
+          detailHighlights
+        )}</small>
+        <small data-highlight-field="details">${renderHighlightedText(
+          b.authors || "",
+          detailHighlights
+        )}</small>
         ${
-          b.cited_by_count != null
-            ? `<small>Citations: ${b.cited_by_count}</small>`
+          detailCitationsText
+            ? `<small data-highlight-field="details">${renderHighlightedText(
+                detailCitationsText,
+                detailHighlights
+              )}</small>`
             : ""
         }
-        ${b.doi ? `<small>DOI: ${b.doi}</small>` : ""}
+        ${
+          detailDoiText
+            ? `<small data-highlight-field="details">${renderHighlightedText(
+                detailDoiText,
+                detailHighlights
+              )}</small>`
+            : ""
+        }
       </div>
       ${renderSourcePills(googleLinks)}
       ${sourceSection}
