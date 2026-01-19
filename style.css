@@ -367,6 +367,33 @@ body {
   border-color: color-mix(in srgb, #000, transparent 85%);
 }
 
+.text-highlight {
+  padding: 0 0.15em;
+  border-radius: 0.2em;
+  background: #fef3c7;
+  color: inherit;
+}
+
+.text-highlight.highlight-pastel-red {
+  background: #fde2e2;
+}
+
+.text-highlight.highlight-pastel-blue {
+  background: #dbeafe;
+}
+
+.text-highlight.highlight-pastel-yellow {
+  background: #fef3c7;
+}
+
+.text-highlight.highlight-pastel-green {
+  background: #dcfce7;
+}
+
+.text-highlight.highlight-pastel-grey {
+  background: #e5e7eb;
+}
+
 .bookmark-item-header {
   display: flex;
   align-items: flex-start;
