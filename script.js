@@ -1054,6 +1054,23 @@ function extractHostname(link) {
   }
 }
 
+const PUBLIC_DOMAIN_SITES = [
+  "archive.org",
+  "gutenberg.org",
+  "hathitrust.org",
+  "loc.gov",
+  "openlibrary.org",
+  "standardebooks.org",
+  "wikisource.org"
+];
+
+function isPublicDomainHost(hostname) {
+  if (!hostname) return false;
+  return PUBLIC_DOMAIN_SITES.some(
+    (site) => hostname === site || hostname.endsWith(`.${site}`)
+  );
+}
+
 function normalizeDoiValue(doi) {
   if (!doi) return "";
   return String(doi).replace(/^https?:\/\/doi\.org\//i, "").trim();
@@ -1065,17 +1082,29 @@ function buildGoogleQueries(title, firstAuthor, doi) {
   if (firstAuthor) baseParts.push(`"${firstAuthor}"`);
 
   const normalizedDoi = normalizeDoiValue(doi);
+  const baseQuery = baseParts.join(" ").trim();
+  const publicDomainSitesQuery = PUBLIC_DOMAIN_SITES.map(
+    (site) => `site:${site}`
+  ).join(" OR ");
+  const publicDomainQuery = baseQuery
+    ? `${baseQuery} (${publicDomainSitesQuery})`
+    : "";
 
   return [
     {
       type: "primary",
-      q: baseParts.join(" ").trim(),
+      q: baseQuery,
       exactTerms: title || ""
     },
     {
       type: "citations",
-      q: baseParts.join(" ").trim(),
+      q: baseQuery,
       orTerms: "cited references bibliography"
+    },
+    {
+      type: "public_domain",
+      q: publicDomainQuery,
+      exactTerms: title || ""
     },
     {
       type: "doi",
@@ -1090,10 +1119,15 @@ function scoreGoogleItem(item, title) {
   const itemTitle = String(item?.title || "").toLowerCase();
   const snippet = String(item?.snippet || "").toLowerCase();
   const link = String(item?.link || "").toLowerCase();
+  const hostname = extractHostname(link).toLowerCase();
 
   let score = 0;
   if (titleLower && itemTitle.includes(titleLower)) score += 4;
   if (titleLower && snippet.includes(titleLower)) score += 2;
+  if (isPublicDomainHost(hostname)) score += 3;
+  if (snippet.includes("public domain") || snippet.includes("full text")) {
+    score += 1;
+  }
   if (link.includes(".pdf")) score -= 1;
   return score;
 }
