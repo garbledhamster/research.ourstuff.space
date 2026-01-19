@@ -18,11 +18,12 @@
   --text-2: #475569;
   --text-3: #64748b;
   --text-4: #94a3b8;
+  --dark-slate: #334155;
 
   /* Border colors */
   --border-subtle: color-mix(in srgb, var(--text-1), transparent 88%);
-  --border-light: #e5e5e5;
-  --border-medium: #d0d7de;
+  --border-light: #475569;
+  --border-medium: #334155;
 
   /* Shadow colors */
   --shadow-color: rgba(0, 0, 0, 0.2);
