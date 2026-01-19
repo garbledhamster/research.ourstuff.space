@@ -324,8 +324,10 @@ body {
   border: 1px solid var(--border-light);
   border-radius: 10px;
   padding: 10px;
+  padding-bottom: 50px;
   background: var(--surface-3);
   margin-bottom: 10px;
+  position: relative;
 }
 
 .bookmark-item-header {
@@ -347,24 +349,45 @@ body {
 }
 
 .bookmark-item-actions {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
-.bookmark-ghost-button,
-.bookmark-danger-button {
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: 999px;
+.bookmark-icon-button {
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
   border: 1px solid var(--border-medium);
   background: var(--surface-1);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-2);
 }
 
-.bookmark-danger-button {
+.bookmark-icon-button:hover {
+  background: var(--surface-2);
+  border-color: var(--brand-border);
+  color: var(--text-1);
+}
+
+.bookmark-icon-button.bookmark-danger {
   color: var(--danger-strong);
   border-color: var(--danger-border);
   background: var(--danger-light);
+}
+
+.bookmark-icon-button.bookmark-danger:hover {
+  background: var(--danger-strong);
+  color: white;
+}
+
+.bookmark-icon-button svg {
+  display: block;
 }
 
 .bookmark-item-details {
