@@ -1878,6 +1878,7 @@ function createBookmarkListItem(b) {
   toggleButton.className = "bookmark-icon-button";
   toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
   toggleButton.title = "View details";
+  toggleButton.setAttribute("aria-expanded", "false");
   
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
@@ -2057,13 +2058,15 @@ function createBookmarkListItem(b) {
     if (currentExpandedBookmarkDetails && currentExpandedBookmarkDetails !== details) {
       currentExpandedBookmarkDetails.hidden = true;
       if (currentExpandedBookmarkButton) {
-        currentExpandedBookmarkButton.innerText = "Details";
+        currentExpandedBookmarkButton.title = "View details";
+        currentExpandedBookmarkButton.setAttribute("aria-expanded", "false");
       }
     }
   
     // Toggle current card
     details.hidden = !details.hidden;
-    toggleButton.innerText = details.hidden ? "Details" : "Hide";
+    toggleButton.title = details.hidden ? "View details" : "Hide details";
+    toggleButton.setAttribute("aria-expanded", details.hidden ? "false" : "true");
   
     // Update tracking
     if (details.hidden) {
