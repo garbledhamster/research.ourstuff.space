@@ -48,6 +48,25 @@ function saveBookmarks(data) {
   localStorage.setItem("researchBookmarks", JSON.stringify(data));
 }
 
+const HIGHLIGHT_COLORS = {
+  "pastel-red": "#fde2e2",
+  "pastel-blue": "#dbeafe",
+  "pastel-yellow": "#fef3c7",
+  "pastel-green": "#dcfce7",
+  "pastel-grey": "#e5e7eb"
+};
+
+function applyBookmarkHighlightStyle(element, highlightColor) {
+  const color = highlightColor ? HIGHLIGHT_COLORS[highlightColor] : "";
+  if (color) {
+    element.style.backgroundColor = color;
+    element.style.borderColor = "color-mix(in srgb, #000, transparent 85%)";
+  } else {
+    element.style.backgroundColor = "";
+    element.style.borderColor = "";
+  }
+}
+
 function getGoogleSettings() {
   return {
     apiKey: localStorage.getItem("googleApiKey") || "",
@@ -193,6 +212,13 @@ function filterBookmarks(bookmarks) {
 function updateBookmarkNote(id, note) {
   const bookmarks = getBookmarks().map((entry) =>
     entry.id === id ? { ...entry, note } : entry
+  );
+  saveBookmarks(bookmarks);
+}
+
+function updateBookmarkHighlight(id, highlightColor) {
+  const bookmarks = getBookmarks().map((entry) =>
+    entry.id === id ? { ...entry, highlightColor } : entry
   );
   saveBookmarks(bookmarks);
 }
@@ -1195,7 +1221,8 @@ async function toggleBookmark(entry, btn) {
       createdAt: Date.now(),
       googleLinks: [],
       googleLinksStatus: "pending",
-      note: ""
+      note: "",
+      highlightColor: null
     };
     bookmarks.push(pendingEntry);
     btn.style.color = "var(--accent-bookmarked)";
@@ -1879,6 +1906,7 @@ function renderBookmarkList() {
   bookmarks.forEach((b) => {
     const item = document.createElement("div");
     item.className = "bookmark-item";
+    applyBookmarkHighlightStyle(item, b.highlightColor);
 
     const header = document.createElement("div");
     header.className = "bookmark-item-header";
@@ -2047,6 +2075,41 @@ function renderBookmarkList() {
         <textarea id="bookmark-note-${b.id}" placeholder="Add a note..."></textarea>
       </div>
     `;
+
+    const highlightTemplate = document.getElementById("bookmarkHighlightControls");
+    if (highlightTemplate) {
+      const highlightControls = highlightTemplate.content.cloneNode(true);
+      const highlightSelect = highlightControls.querySelector(
+        'select[name="bookmarkHighlightColor"]'
+      );
+      const highlightApplyButton = highlightControls.querySelector(
+        ".bookmark-apply-highlight"
+      );
+      const highlightClearButton = highlightControls.querySelector(
+        ".bookmark-clear-highlight"
+      );
+
+      if (highlightSelect) {
+        highlightSelect.value = b.highlightColor || highlightSelect.value;
+      }
+
+      if (highlightApplyButton) {
+        highlightApplyButton.addEventListener("click", () => {
+          const selectedColor = highlightSelect ? highlightSelect.value : null;
+          updateBookmarkHighlight(b.id, selectedColor);
+          applyBookmarkHighlightStyle(item, selectedColor);
+        });
+      }
+
+      if (highlightClearButton) {
+        highlightClearButton.addEventListener("click", () => {
+          updateBookmarkHighlight(b.id, null);
+          applyBookmarkHighlightStyle(item, null);
+        });
+      }
+
+      details.appendChild(highlightControls);
+    }
 
     const noteInput = details.querySelector("textarea");
     if (noteInput) {

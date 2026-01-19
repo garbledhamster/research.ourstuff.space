@@ -108,39 +108,56 @@
       </div>
     </section>
 
+    <section class="settings-section" aria-labelledby="highlighting-settings-title">
+      <div class="settings-section-title" id="highlighting-settings-title">
+        Highlighting Preferences
+      </div>
+      <div class="settings-grid">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <input id="enableHighlighting" type="checkbox" name="enableHighlighting" />
+          <label for="enableHighlighting" style="margin: 0;">Enable highlights for bookmarks</label>
+        </div>
+        <label for="defaultHighlightColor">
+          Default highlight color
+          <select id="defaultHighlightColor" name="defaultHighlightColor">
+            <option value="pastel-red">Pastel Red</option>
+            <option value="pastel-blue">Pastel Blue</option>
+            <option value="pastel-yellow">Pastel Yellow</option>
+            <option value="pastel-green">Pastel Green</option>
+            <option value="pastel-grey">Pastel Grey</option>
+          </select>
+        </label>
+      </div>
+      <div class="settings-note">
+        Choose whether new bookmarks should be highlighted by default and which pastel color to use.
+      </div>
+    </section>
+
     <!-- RESULTS -->
     <section class="results-section">
       <div id="results"></div>
     </section>
   </main>
 
-  <!-- Modal for creating new project -->
-  <div class="modal" id="modal-create-project">
-    <div class="modal__overlay">
-      <div class="modal__container">
-        <header class="modal__header">
-          <h2 class="modal__title">Create New Project</h2>
-          <button class="modal__close" type="button" onclick="closeProjectModal()"></button>
-        </header>
-        <main class="modal__content">
-          <form id="create-project-form">
-            <div class="form-group">
-              <label for="project-name-input">Project Name *</label>
-              <input type="text" id="project-name-input" name="projectName" required placeholder="Enter project name" />
-            </div>
-            <div class="form-group">
-              <label for="project-description-input">Description (optional)</label>
-              <textarea id="project-description-input" name="projectDescription" rows="3" placeholder="Enter project description"></textarea>
-            </div>
-          </form>
-        </main>
-        <footer class="modal__footer">
-          <button class="modal__btn modal__btn-secondary" type="button" onclick="closeProjectModal()">Cancel</button>
-          <button class="modal__btn modal__btn-primary" type="button" id="create-project-submit">Create Project</button>
-        </footer>
+  <template id="bookmarkHighlightControls">
+    <fieldset class="bookmark-highlight-controls">
+      <legend>Highlight</legend>
+      <label>
+        Color
+        <select name="bookmarkHighlightColor" aria-label="Select highlight color">
+          <option value="pastel-red">Pastel Red</option>
+          <option value="pastel-blue">Pastel Blue</option>
+          <option value="pastel-yellow">Pastel Yellow</option>
+          <option value="pastel-green">Pastel Green</option>
+          <option value="pastel-grey">Pastel Grey</option>
+        </select>
+      </label>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" class="bookmark-apply-highlight">Apply highlight</button>
+        <button type="button" class="bookmark-clear-highlight">Clear highlight</button>
       </div>
-    </div>
-  </div>
+    </fieldset>
+  </template>
 
   <script src="script.js"></script>
 </body>
