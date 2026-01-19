@@ -187,6 +187,17 @@ function removeBookmark(id) {
 createLibraryDrawer();
 createSettingsDrawer();
 
+// Close dropdowns when clicking outside
+document.addEventListener('click', (event) => {
+  // Check if click is outside any dropdown
+  const isClickInsideDropdown = event.target.closest('.generate-dropdown-container');
+  if (!isClickInsideDropdown) {
+    document.querySelectorAll('.generate-dropdown-menu.show').forEach(menu => {
+      menu.classList.remove('show');
+    });
+  }
+});
+
 // ---------- ADVANCED TOGGLE ----------
 
 function toggleAdvanced() {
@@ -246,11 +257,23 @@ function getOpenAISettings() {
 }
 
 function setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions) {
+    defaultTemplate: localStorage.getItem("openaiDefaultTemplate") || DEFAULT_TEMPLATE,
+    autogenerate: localStorage.getItem("openaiAutogenerate") === "true",
+  };
+}
+
+function setOpenAISettings(apiKey, model, temperature, maxTokens, defaultTemplate, autogenerate) {
   localStorage.setItem("openaiApiKey", apiKey);
   localStorage.setItem("openaiModel", model);
   localStorage.setItem("openaiTemperature", String(temperature));
   localStorage.setItem("openaiMaxTokens", String(maxTokens));
   localStorage.setItem("openaiGenerateAbstractions", String(generateAbstractions));
+  if (defaultTemplate !== undefined) {
+    localStorage.setItem("openaiDefaultTemplate", defaultTemplate);
+  }
+  if (autogenerate !== undefined) {
+    localStorage.setItem("openaiAutogenerate", String(autogenerate));
+  }
 }
 
 async function validateOpenAIKey() {
@@ -317,6 +340,11 @@ function saveOpenAISettings() {
   const apiKey = getOpenAISettings().apiKey;
 
   setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions);
+  const defaultTemplate = document.getElementById("openaiDefaultTemplate")?.value || DEFAULT_TEMPLATE;
+  const autogenerate = document.getElementById("openaiAutogenerate")?.checked || false;
+  const apiKey = getOpenAISettings().apiKey;
+
+  setOpenAISettings(apiKey, model, temperature, maxTokens, defaultTemplate, autogenerate);
 
   const statusDiv = document.getElementById("openaiValidationStatus");
   const originalText = statusDiv.innerText;
@@ -328,7 +356,157 @@ function saveOpenAISettings() {
   }, 2000);
 }
 
-async function generateResearchNote(bookmarkId) {
+// Template definitions for AI prompts
+const AI_TEMPLATES = {
+  paragraph: {
+    name: "Paragraph",
+    prompt: (bookmark) => `You are a research assistant. Analyze the following academic paper and provide a single well-written paragraph that explains:
+1. The abstraction or theoretical framework
+2. The key findings
+3. The conclusions
+
+Keep it concise and academic in tone.
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+Abstract: ${bookmark.abstract || "No abstract available"}
+
+At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
+{Author, Material Title (Year Written)}
+Example: Ackoff, From Data to Wisdom (1989)`
+  },
+  highlights: {
+    name: "Highlights",
+    prompt: (bookmark) => `You are a research assistant. Analyze the following academic paper and provide key highlights in bullet point format:
+- Main theoretical contribution
+- Methodology used
+- Key findings (2-3 points)
+- Practical implications
+- Notable quotes or concepts
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+Abstract: ${bookmark.abstract || "No abstract available"}
+
+At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
+{Author, Material Title (Year Written)}
+Example: Ackoff, From Data to Wisdom (1989)`
+  },
+  research_analysis_paragraph: {
+    name: "Research Analysis (Paragraph)",
+    prompt: (bookmark) => `You are a research analyst. Provide a comprehensive analytical paragraph examining this academic paper:
+- Research question and objectives
+- Theoretical framework and literature positioning
+- Methodology and approach
+- Key findings and their significance
+- Limitations and future research directions
+
+Present as a cohesive analytical narrative.
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+Abstract: ${bookmark.abstract || "No abstract available"}
+
+At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
+{Author, Material Title (Year Written)}
+Example: Ackoff, From Data to Wisdom (1989)`
+  },
+  research_analysis_bullets: {
+    name: "Research Analysis (Bullet Points)",
+    prompt: (bookmark) => `You are a research analyst. Provide a structured analysis of this academic paper in bullet points:
+
+**Research Question:**
+- [Question being addressed]
+
+**Theoretical Framework:**
+- [Framework used]
+
+**Methodology:**
+- [Approach and methods]
+
+**Key Findings:**
+- [Finding 1]
+- [Finding 2]
+- [Finding 3]
+
+**Significance:**
+- [Why this matters]
+
+**Limitations:**
+- [Limitations noted]
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+Abstract: ${bookmark.abstract || "No abstract available"}
+
+At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
+{Author, Material Title (Year Written)}
+Example: Ackoff, From Data to Wisdom (1989)`
+  },
+  arguments_main_points: {
+    name: "Arguments and Main Points",
+    prompt: (bookmark) => `You are a research assistant. Identify and explain the main arguments and points of this academic paper:
+
+**Central Argument:**
+[The paper's main thesis or argument]
+
+**Supporting Points:**
+1. [First supporting point with brief explanation]
+2. [Second supporting point with brief explanation]
+3. [Third supporting point with brief explanation]
+
+**Counter-arguments Addressed:**
+[Any opposing views or limitations discussed]
+
+**Conclusion:**
+[How the arguments tie together]
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+Abstract: ${bookmark.abstract || "No abstract available"}
+
+At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
+{Author, Material Title (Year Written)}
+Example: Ackoff, From Data to Wisdom (1989)`
+  },
+  connections_cited_works: {
+    name: "Connections and Cited Works",
+    prompt: (bookmark) => `You are a research assistant. Analyze the connections and intellectual lineage of this academic paper:
+
+**Theoretical Foundations:**
+[Key theories and frameworks this work builds upon]
+
+**Major Influences:**
+[Important prior works that shaped this research]
+
+**Contribution to Field:**
+[How this work extends or challenges existing knowledge]
+
+**Related Research Areas:**
+[Connected fields and topics]
+
+**Future Directions:**
+[Potential paths for related research]
+
+Title: ${bookmark.title}
+Authors: ${bookmark.authors || "Unknown"}
+Year: ${bookmark.year || "Unknown"}
+Abstract: ${bookmark.abstract || "No abstract available"}
+
+At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
+{Author, Material Title (Year Written)}
+Example: Ackoff, From Data to Wisdom (1989)`
+  }
+};
+
+const DEFAULT_TEMPLATE = 'paragraph';
+
+async function generateResearchNote(bookmarkId, templateId) {
   const bookmarks = getBookmarks();
   const bookmark = bookmarks.find((b) => b.id === bookmarkId);
   if (!bookmark) return;
@@ -338,6 +516,10 @@ async function generateResearchNote(bookmarkId) {
     alert("Please add and validate your OpenAI API key in Advanced settings.");
     return;
   }
+
+  // Use provided templateId or fall back to default
+  const selectedTemplate = templateId || settings.defaultTemplate;
+  const template = AI_TEMPLATES[selectedTemplate] || AI_TEMPLATES[DEFAULT_TEMPLATE];
 
   const statusElement = document.getElementById(`chatty-status-${bookmarkId}`);
   if (statusElement) {
@@ -388,6 +570,7 @@ Authors: ${bookmark.authors || "Unknown"}
 Year: ${bookmark.year || "Unknown"}
 Abstract: ${bookmark.abstract || "No abstract available"}`;
   }
+  const prompt = template.prompt(bookmark);
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -1034,6 +1217,12 @@ async function toggleBookmark(entry, btn) {
     );
     saveBookmarks(updated);
     renderBookmarkList();
+
+    // Auto-generate summary if enabled
+    const settings = getOpenAISettings();
+    if (settings.autogenerate && settings.apiKey) {
+      generateResearchNote(entry.id);
+    }
   }
 }
 
@@ -1195,6 +1384,22 @@ function createSettingsDrawer() {
           </div>
           <div style="font-size: 0.75rem; color: var(--text-3); margin-top: -0.5rem; margin-left: 1.5rem;">
             When enabled, AI will write/rewrite abstractions instead of using the original. AI-generated abstractions will be marked with 🤖.
+          <select id="openaiDefaultTemplate" title="Default Output Template">
+            <option value="paragraph">Paragraph</option>
+            <option value="highlights">Highlights</option>
+            <option value="research_analysis_paragraph">Research Analysis (Paragraph)</option>
+            <option value="research_analysis_bullets">Research Analysis (Bullet Points)</option>
+            <option value="arguments_main_points">Arguments and Main Points</option>
+            <option value="connections_cited_works">Connections and Cited Works</option>
+          </select>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <input
+              id="openaiAutogenerate"
+              type="checkbox"
+              style="width: auto; margin: 0;"
+            />
+            <label for="openaiAutogenerate" style="font-size: 0.875rem; margin: 0;">Autogenerate summaries on bookmark</label>
           </div>
         </div>
 
@@ -1554,15 +1759,51 @@ function renderBookmarkList() {
     const actions = document.createElement("div");
     actions.className = "bookmark-item-actions";
 
+    // Generate button with dropdown
+    const generateButtonContainer = document.createElement("div");
+    generateButtonContainer.className = "generate-dropdown-container";
+    
     const generateButton = document.createElement("button");
     generateButton.type = "button";
     generateButton.className = "bookmark-icon-button";
     generateButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`;
     generateButton.title = "Generate AI research note";
+    
+    const generateDropdown = document.createElement("div");
+    generateDropdown.className = "generate-dropdown-menu";
+    generateDropdown.innerHTML = `
+      <button type="button" class="dropdown-item" data-template="paragraph">Paragraph</button>
+      <button type="button" class="dropdown-item" data-template="highlights">Highlights</button>
+      <button type="button" class="dropdown-item" data-template="research_analysis_paragraph">Research Analysis (Paragraph)</button>
+      <button type="button" class="dropdown-item" data-template="research_analysis_bullets">Research Analysis (Bullet Points)</button>
+      <button type="button" class="dropdown-item" data-template="arguments_main_points">Arguments and Main Points</button>
+      <button type="button" class="dropdown-item" data-template="connections_cited_works">Connections and Cited Works</button>
+    `;
+    
+    // Toggle dropdown on button click
     generateButton.onclick = (event) => {
       event.stopPropagation();
-      generateResearchNote(b.id);
+      // Close all other dropdowns first
+      document.querySelectorAll('.generate-dropdown-menu.show').forEach(menu => {
+        if (menu !== generateDropdown) {
+          menu.classList.remove('show');
+        }
+      });
+      generateDropdown.classList.toggle('show');
     };
+    
+    // Handle template selection
+    generateDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+      item.onclick = (event) => {
+        event.stopPropagation();
+        const templateId = item.dataset.template;
+        generateDropdown.classList.remove('show');
+        generateResearchNote(b.id, templateId);
+      };
+    });
+    
+    generateButtonContainer.appendChild(generateButton);
+    generateButtonContainer.appendChild(generateDropdown);
 
     const toggleButton = document.createElement("button");
     toggleButton.type = "button";
@@ -1580,7 +1821,7 @@ function renderBookmarkList() {
       removeBookmark(b.id);
     };
 
-    actions.appendChild(generateButton);
+    actions.appendChild(generateButtonContainer);
     actions.appendChild(toggleButton);
     actions.appendChild(deleteButton);
 
@@ -1753,6 +1994,8 @@ function initializeSettings() {
       document.getElementById("openaiMaxTokens").value = openaiSettings.maxTokens;
       document.getElementById("tokensValue").textContent = openaiSettings.maxTokens;
       document.getElementById("openaiGenerateAbstractions").checked = openaiSettings.generateAbstractions;
+      document.getElementById("openaiDefaultTemplate").value = openaiSettings.defaultTemplate;
+      document.getElementById("openaiAutogenerate").checked = openaiSettings.autogenerate;
     }
   }
 }
