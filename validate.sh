@@ -86,7 +86,19 @@ echo ""
 # 3. Stylelint - CSS validation
 echo "3. Running Stylelint (CSS validation)..."
 # Create minimal config in /tmp for ephemeral execution
-echo '{"rules": {"color-no-invalid-hex": true, "declaration-block-no-duplicate-properties": true, "block-no-empty": true, "selector-pseudo-class-no-unknown": true, "selector-pseudo-element-no-unknown": true, "property-no-unknown": true, "unit-no-unknown": true}}' > /tmp/stylelint-config.json
+cat > /tmp/stylelint-config.json << 'EOF'
+{
+  "rules": {
+    "color-no-invalid-hex": true,
+    "declaration-block-no-duplicate-properties": true,
+    "block-no-empty": true,
+    "selector-pseudo-class-no-unknown": true,
+    "selector-pseudo-element-no-unknown": true,
+    "property-no-unknown": true,
+    "unit-no-unknown": true
+  }
+}
+EOF
 
 if npx --yes stylelint@latest --config /tmp/stylelint-config.json "*.css" "assets/*.css"; then
     print_status 0
@@ -103,7 +115,7 @@ export default [
   {
     files: ["**/*.js"],
     languageOptions: {
-      ecmaVersion: 2022,
+      ecmaVersion: "latest",
       sourceType: "script",
       globals: {
         document: "readonly",
