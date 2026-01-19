@@ -14,10 +14,38 @@ echo ""
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 ERRORS=0
 WARNINGS=0
+
+# Parse command line arguments
+RUN_PLAYWRIGHT=false
+RUN_LIGHTHOUSE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --playwright)
+            RUN_PLAYWRIGHT=true
+            shift
+            ;;
+        --lighthouse)
+            RUN_LIGHTHOUSE=true
+            shift
+            ;;
+        --all)
+            RUN_PLAYWRIGHT=true
+            RUN_LIGHTHOUSE=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--playwright] [--lighthouse] [--all]"
+            exit 1
+            ;;
+    esac
+done
 
 # Function to print status
 print_status() {
@@ -113,6 +141,47 @@ else
     fi
 fi
 echo ""
+
+# 5. Playwright Tests (optional - only after UI changes)
+if [ "$RUN_PLAYWRIGHT" = true ]; then
+    echo "5. Running Playwright Tests (UI validation)..."
+    echo -e "${BLUE}ℹ Note: Playwright tests require a playwright.config.ts file${NC}"
+    if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ]; then
+        if npx --yes playwright@latest test; then
+            print_status 0
+        else
+            print_status 1
+        fi
+    else
+        echo -e "${YELLOW}⚠ SKIPPED - No Playwright config found${NC}"
+        echo -e "${BLUE}ℹ To enable: npx playwright init${NC}"
+    fi
+    echo ""
+fi
+
+# 6. Lighthouse Audit (optional - final audit)
+if [ "$RUN_LIGHTHOUSE" = true ]; then
+    echo "6. Running Lighthouse Audit (Performance/Accessibility)..."
+    echo -e "${BLUE}ℹ Note: Lighthouse requires the site to be served locally or deployed${NC}"
+    
+    # Check if site is running locally
+    if curl -s http://localhost:8000 > /dev/null 2>&1; then
+        if npx --yes lighthouse@latest http://localhost:8000 --output=json --output-path=/tmp/lighthouse-report.json --quiet; then
+            # Parse the report and show scores
+            if command -v jq &> /dev/null; then
+                echo -e "${BLUE}Lighthouse Scores:${NC}"
+                jq -r '.categories | to_entries[] | "\(.key): \(.value.score * 100)%"' /tmp/lighthouse-report.json
+            fi
+            print_status 0
+        else
+            print_status 1
+        fi
+    else
+        echo -e "${YELLOW}⚠ SKIPPED - Site not running on http://localhost:8000${NC}"
+        echo -e "${BLUE}ℹ To enable: Start a local server (e.g., 'python -m http.server 8000')${NC}"
+    fi
+    echo ""
+fi
 
 # Summary
 echo "========================================="

@@ -8,7 +8,9 @@ All frontend code (HTML, CSS, JavaScript) is automatically validated using indus
 
 ## Validation Tools
 
-### 1. **Biome** - JavaScript Formatting & Linting
+### Core Tools (Always Run)
+
+#### 1. **Biome** - JavaScript Formatting & Linting
 - **Purpose**: Format and lint JavaScript code
 - **Command**: `npx --yes @biomejs/biome@latest check --write script.js`
 - **Auto-fix**: Yes
@@ -19,7 +21,7 @@ All frontend code (HTML, CSS, JavaScript) is automatically validated using indus
 
 **Note**: Biome may show warnings for functions called from HTML (onclick handlers) as "unused". These are false positives and acceptable.
 
-### 2. **html-validate** - HTML Validation
+#### 2. **html-validate** - HTML Validation
 - **Purpose**: Validate HTML structure and syntax
 - **Command**: `npx --yes html-validate@latest index.html`
 - **Auto-fix**: No (manual fixes required)
@@ -29,7 +31,7 @@ All frontend code (HTML, CSS, JavaScript) is automatically validated using indus
   - Proper nesting and structure
   - Accessibility attributes
 
-### 3. **Stylelint** - CSS Validation
+#### 3. **Stylelint** - CSS Validation
 - **Purpose**: Validate and lint CSS code
 - **Command**: `npx --yes stylelint@latest --config /tmp/stylelint-config.json "*.css" "assets/*.css"`
 - **Auto-fix**: Partial (some rules support --fix)
@@ -42,7 +44,7 @@ All frontend code (HTML, CSS, JavaScript) is automatically validated using indus
 
 **Note**: Uses a minimal ephemeral configuration file created in `/tmp/stylelint-config.json`
 
-### 4. **ESLint** - JavaScript Linting
+#### 4. **ESLint** - JavaScript Linting
 - **Purpose**: Additional JavaScript linting beyond Biome
 - **Command**: `npx --yes eslint@latest --config /tmp/eslint.config.js script.js`
 - **Auto-fix**: Partial (some rules support --fix)
@@ -52,6 +54,20 @@ All frontend code (HTML, CSS, JavaScript) is automatically validated using indus
   - Syntax errors
 
 **Note**: Uses an ephemeral ESLint flat config created in `/tmp/eslint.config.js` with browser globals
+
+### Optional Tools (Run After Changes)
+
+#### 5. **Playwright** - UI Testing (Optional)
+- **Purpose**: Test UI functionality after changes
+- **Command**: `npx --yes playwright@latest test`
+- **When to run**: After UI changes
+- **Requirements**: Requires `playwright.config.ts` (create with `npx playwright init`)
+
+#### 6. **Lighthouse** - Performance & Accessibility Audit (Optional)
+- **Purpose**: Final audit of performance, accessibility, best practices, and SEO
+- **Command**: `npx --yes lighthouse@latest http://localhost:8000`
+- **When to run**: Final audit before deployment
+- **Requirements**: Site must be running locally (e.g., `python -m http.server 8000`)
 
 ## Running Validation
 
@@ -68,6 +84,25 @@ This script:
 2. Applies auto-fixes where supported
 3. Reports pass/fail status for each tool
 4. Provides a summary with error and warning counts
+
+### Optional Checks
+
+Run additional validation checks:
+
+```bash
+# Run Playwright tests (after UI changes)
+./validate.sh --playwright
+
+# Run Lighthouse audit (final performance/accessibility check)
+./validate.sh --lighthouse
+
+# Run all checks including Playwright and Lighthouse
+./validate.sh --all
+```
+
+**Note**: 
+- Playwright requires a `playwright.config.ts` file. Initialize with `npx playwright init`
+- Lighthouse requires the site to be running locally (e.g., `python -m http.server 8000`)
 
 ### Manual Validation
 
@@ -91,11 +126,15 @@ npx --yes eslint@latest --config /tmp/eslint.config.js script.js
 
 ## Validation Results
 
-### Current Status
+### Current Status (Core Tools)
 - ✅ **Biome**: PASSED (with warnings for HTML-called functions)
 - ✅ **html-validate**: PASSED
 - ✅ **Stylelint**: PASSED
 - ✅ **ESLint**: PASSED (with warnings for HTML-called functions)
+
+### Optional Tools Status
+- ⏭️ **Playwright**: Available via `./validate.sh --playwright` (requires config)
+- ⏭️ **Lighthouse**: Available via `./validate.sh --lighthouse` (requires local server)
 
 ### Known Warnings
 
@@ -139,18 +178,36 @@ This approach ensures:
 - ✅ Clean repository without build artifacts
 - ✅ Easy to run on any machine with Node.js/npm
 
-## Future Enhancements
+## Usage Instructions
 
-Optional enhancements that could be added:
+### Basic Usage (Core Tools Only)
+```bash
+./validate.sh
+```
+This runs Biome, html-validate, Stylelint, and ESLint.
 
-1. **Playwright Tests**: After UI changes, run:
-   ```bash
-   npx playwright test
-   ```
+### With Optional Tools
+```bash
+# After UI changes, run Playwright tests
+./validate.sh --playwright
 
-2. **Lighthouse Audit**: Final performance/accessibility audit:
-   ```bash
-   npx lighthouse https://research.ourstuff.space/ --view
-   ```
+# Before deployment, run Lighthouse audit
+./validate.sh --lighthouse
 
-Both tools support ephemeral execution via npx and require no configuration.
+# Run everything
+./validate.sh --all
+```
+
+### Integration
+
+**Pre-commit**: Add to your Git hooks
+```bash
+#!/bin/sh
+./validate.sh || exit 1
+```
+
+**CI/CD**: Add to your workflow
+```yaml
+- name: Validate Frontend
+  run: ./validate.sh --all
+```
