@@ -1257,6 +1257,37 @@ async function toggleBookmark(entry, btn) {
   }
 }
 
+async function refreshBookmarkLinks(bookmarkId) {
+  const bookmarks = getBookmarks();
+  const entry = bookmarks.find((b) => b.id === bookmarkId);
+  if (!entry) return;
+
+  const pendingBookmarks = bookmarks.map((b) =>
+    b.id === bookmarkId
+      ? {
+          ...b,
+          googleLinks: [],
+          googleLinksStatus: "pending"
+        }
+      : b
+  );
+  saveBookmarks(pendingBookmarks);
+  renderBookmarkList();
+
+  const { links, status } = await fetchGoogleSourceLinks(entry);
+  const updated = getBookmarks().map((b) =>
+    b.id === bookmarkId
+      ? {
+          ...b,
+          googleLinks: links,
+          googleLinksStatus: status
+        }
+      : b
+  );
+  saveBookmarks(updated);
+  renderBookmarkList();
+}
+
 // ---------- LIBRARY DRAWER ----------
 
 function createLibraryDrawer() {
@@ -2056,6 +2087,8 @@ function createBookmarkListItem(b) {
   const googleStatus =
     b.googleLinksStatus || b.pdfLinksStatus || "missing_settings";
   let sourceSection = "";
+  const refreshDisabled = googleStatus === "pending";
+  const refreshButtonLabel = refreshDisabled ? "Refreshing..." : "Refresh links";
   
   if (googleStatus === "pending") {
     sourceSection = `<div class="small-note">Finding source links...</div>`;
@@ -2126,6 +2159,23 @@ function createBookmarkListItem(b) {
       }
     </div>
     ${renderSourcePills(googleLinks)}
+    <div class="bookmark-source-actions">
+      <button
+        type="button"
+        class="bookmark-refresh-button"
+        data-refresh-bookmark="${escapeHtml(b.id)}"
+        ${refreshDisabled ? "disabled" : ""}
+        title="Refresh source links"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10"></path>
+          <path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14"></path>
+        </svg>
+        <span>${refreshButtonLabel}</span>
+      </button>
+    </div>
     ${sourceSection}
     ${aiSummarySection}
     ${abstractSection}
@@ -2146,6 +2196,16 @@ function createBookmarkListItem(b) {
     noteInput.value = b.note || "";
     noteInput.addEventListener("input", (event) => {
       updateBookmarkNote(b.id, event.target.value);
+    });
+  }
+
+  const refreshButton = details.querySelector(
+    `[data-refresh-bookmark="${CSS.escape(b.id)}"]`
+  );
+  if (refreshButton) {
+    refreshButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      refreshBookmarkLinks(b.id);
     });
   }
   
