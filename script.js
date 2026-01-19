@@ -28,6 +28,7 @@ let resolvedSourceLabel = "";
 // Constants for abstract validation
 const MIN_ABSTRACT_LENGTH = 30;
 const INVALID_ABSTRACT_TEXT = "Abstract not available";
+const DEFAULT_TEMPLATE = 'paragraph';
 
 // Helper function to check if an abstract is valid
 function hasValidAbstract(abstract) {
@@ -500,8 +501,6 @@ At the end, recommend between 3 to 5 related materials by author and title using
 Example: Ackoff, From Data to Wisdom (1989)`
   }
 };
-
-const DEFAULT_TEMPLATE = 'paragraph';
 
 async function generateResearchNote(bookmarkId, templateId) {
   const bookmarks = getBookmarks();
