@@ -205,14 +205,6 @@ function removeBookmark(id) {
 
 // ---------- UI INIT ----------
 
-// Initialize MicroModal
-if (typeof MicroModal !== 'undefined') {
-  MicroModal.init({
-    disableScroll: true,
-    awaitCloseAnimation: true
-  });
-}
-
 // Initialize active project from storage
 activeProjectId = getActiveProjectId();
 
@@ -1596,8 +1588,21 @@ function showCreateProjectDialog() {
   }
   
   // Show modal
-  if (typeof MicroModal !== 'undefined') {
-    MicroModal.show('modal-create-project');
+  const modal = document.getElementById('modal-create-project');
+  if (modal) {
+    modal.style.display = 'block';
+    // Focus on the name input
+    setTimeout(() => {
+      const nameInput = document.getElementById('project-name-input');
+      if (nameInput) nameInput.focus();
+    }, 100);
+  }
+}
+
+function closeProjectModal() {
+  const modal = document.getElementById('modal-create-project');
+  if (modal) {
+    modal.style.display = 'none';
   }
 }
 
@@ -1605,6 +1610,7 @@ function showCreateProjectDialog() {
 function initializeProjectModal() {
   const submitBtn = document.getElementById('create-project-submit');
   const form = document.getElementById('create-project-form');
+  const modal = document.getElementById('modal-create-project');
   
   if (!submitBtn || !form) return;
   
@@ -1626,13 +1632,33 @@ function initializeProjectModal() {
     createProject(name, description);
     
     // Close modal
-    if (typeof MicroModal !== 'undefined') {
-      MicroModal.close('modal-create-project');
-    }
+    closeProjectModal();
     
     // Render the updated project list
     renderProjectList();
   };
+  
+  // Close modal when clicking overlay
+  if (modal) {
+    const overlay = modal.querySelector('.modal__overlay');
+    if (overlay) {
+      overlay.onclick = (e) => {
+        if (e.target === overlay) {
+          closeProjectModal();
+        }
+      };
+    }
+  }
+  
+  // Close modal with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('modal-create-project');
+      if (modal && modal.style.display === 'block') {
+        closeProjectModal();
+      }
+    }
+  });
 }
 
 function renderProjectList() {
