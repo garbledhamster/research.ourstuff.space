@@ -48,123 +48,6 @@ function saveBookmarks(data) {
   localStorage.setItem("researchBookmarks", JSON.stringify(data));
 }
 
-const HIGHLIGHT_CLASS_MAP = {
-  "pastel-red": "highlight-pastel-red",
-  "pastel-blue": "highlight-pastel-blue",
-  "pastel-yellow": "highlight-pastel-yellow",
-  "pastel-green": "highlight-pastel-green",
-  "pastel-grey": "highlight-pastel-grey"
-};
-
-function getBookmarkTextHighlights(bookmark, field) {
-  if (!bookmark || !Array.isArray(bookmark.textHighlights)) return [];
-  return bookmark.textHighlights.filter(
-    (highlight) => highlight && highlight.field === field && highlight.text
-  );
-}
-
-function addBookmarkTextHighlight(id, field, text, highlightColor) {
-  const trimmedText = String(text || "").trim();
-  if (!trimmedText || !field) return;
-
-  const bookmarks = getBookmarks().map((entry) => {
-    if (entry.id !== id) return entry;
-    const existingHighlights = Array.isArray(entry.textHighlights)
-      ? entry.textHighlights
-      : [];
-    const alreadyExists = existingHighlights.some(
-      (highlight) =>
-        highlight.field === field &&
-        highlight.text === trimmedText &&
-        highlight.color === highlightColor
-    );
-
-    if (alreadyExists) {
-      return entry;
-    }
-
-    const newHighlight = {
-      field,
-      text: trimmedText,
-      color: highlightColor || "pastel-yellow",
-      createdAt: Date.now()
-    };
-
-    return {
-      ...entry,
-      textHighlights: [...existingHighlights, newHighlight]
-    };
-  });
-
-  saveBookmarks(bookmarks);
-}
-
-function renderHighlightedText(text, highlights) {
-  const content = String(text || "");
-  if (!content) return "";
-
-  const validHighlights = Array.isArray(highlights) ? highlights : [];
-  if (validHighlights.length === 0) {
-    return escapeHtml(content);
-  }
-
-  const ranges = [];
-  validHighlights.forEach((highlight) => {
-    const highlightText = String(highlight.text || "");
-    if (!highlightText) return;
-
-    let startIndex = 0;
-    while (startIndex < content.length) {
-      const index = content.indexOf(highlightText, startIndex);
-      if (index === -1) break;
-      ranges.push({
-        start: index,
-        end: index + highlightText.length,
-        color: highlight.color || "pastel-yellow"
-      });
-      startIndex = index + highlightText.length;
-    }
-  });
-
-  if (ranges.length === 0) {
-    return escapeHtml(content);
-  }
-
-  ranges.sort((a, b) => {
-    if (a.start !== b.start) return a.start - b.start;
-    return b.end - a.end;
-  });
-
-  const mergedRanges = [];
-  ranges.forEach((range) => {
-    const last = mergedRanges[mergedRanges.length - 1];
-    if (!last || range.start >= last.end) {
-      mergedRanges.push(range);
-    }
-  });
-
-  let result = "";
-  let cursor = 0;
-
-  mergedRanges.forEach((range) => {
-    if (cursor < range.start) {
-      result += escapeHtml(content.slice(cursor, range.start));
-    }
-
-    const highlightClass = HIGHLIGHT_CLASS_MAP[range.color] || "highlight-pastel-yellow";
-    result += `<mark class="text-highlight ${highlightClass}">${escapeHtml(
-      content.slice(range.start, range.end)
-    )}</mark>`;
-    cursor = range.end;
-  });
-
-  if (cursor < content.length) {
-    result += escapeHtml(content.slice(cursor));
-  }
-
-  return result;
-}
-
 function getGoogleSettings() {
   return {
     apiKey: localStorage.getItem("googleApiKey") || "",
@@ -175,37 +58,6 @@ function getGoogleSettings() {
 function setGoogleSettings(apiKey, cx) {
   localStorage.setItem("googleApiKey", apiKey || "");
   localStorage.setItem("googleCx", cx || "");
-}
-
-function getHighlightSettings() {
-  return {
-    defaultHighlightColor: localStorage.getItem("defaultHighlightColor") || "pastel-yellow"
-  };
-}
-
-function setHighlightSettings(defaultHighlightColor) {
-  localStorage.setItem("defaultHighlightColor", defaultHighlightColor);
-}
-
-function saveHighlightSettings() {
-  const defaultHighlightColor = document.getElementById("defaultHighlightColor")?.value || "pastel-yellow";
-  
-  setHighlightSettings(defaultHighlightColor);
-  
-  // Show feedback
-  const section = document.getElementById("defaultHighlightColor")?.closest('.settings-section');
-  if (section) {
-    const note = section.querySelector('.settings-note');
-    if (note) {
-      const originalText = note.innerText;
-      note.innerText = "Highlight settings saved!";
-      note.style.color = "var(--pico-color-green-500)";
-      setTimeout(() => {
-        note.innerText = originalText;
-        note.style.color = "";
-      }, 2000);
-    }
-  }
 }
 
 function getProjects() {
@@ -370,198 +222,6 @@ document.addEventListener('click', (event) => {
   }
 });
 
-// Text selection highlight popup functionality
-let currentSelectionBookmarkId = null;
-let currentSelectionText = "";
-let currentSelectionField = "";
-
-function showHighlightPopup(x, y, bookmarkId, selectedText, selectedField) {
-  const popup = document.getElementById('textHighlightPopup');
-  if (!popup) return;
-
-  currentSelectionBookmarkId = bookmarkId;
-  
-  // Store selection data as data attributes on the popup button for persistence
-  const button = popup.querySelector('.highlight-popup-button');
-  if (button) {
-    button.dataset.bookmarkId = bookmarkId;
-    button.dataset.selectedText = selectedText;
-    button.dataset.selectedField = selectedField;
-  }
-
-  // Position popup at the end of selection
-  popup.style.left = x + 'px';
-  popup.style.top = y + 'px';
-  
-  // Make visible
-  popup.classList.add('visible');
-  
-  // Ensure popup stays within screen bounds
-  const rect = popup.getBoundingClientRect();
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-  
-  // Adjust horizontal position
-  if (rect.right > viewportWidth) {
-    popup.style.left = (viewportWidth - rect.width - 10) + 'px';
-  }
-  if (rect.left < 0) {
-    popup.style.left = '10px';
-  }
-  
-  // Adjust vertical position
-  if (rect.bottom > viewportHeight) {
-    popup.style.top = (viewportHeight - rect.height - 10) + 'px';
-  }
-  if (rect.top < 0) {
-    popup.style.top = '10px';
-  }
-}
-
-function hideHighlightPopup() {
-  const popup = document.getElementById('textHighlightPopup');
-  if (popup) {
-    popup.classList.remove('visible');
-  }
-  currentSelectionBookmarkId = null;
-  currentSelectionText = "";
-  currentSelectionField = "";
-}
-
-function getSelectionHighlightField(selection) {
-  if (!selection) return null;
-  const anchorNode = selection.anchorNode;
-  const element =
-    anchorNode && anchorNode.nodeType === Node.ELEMENT_NODE
-      ? anchorNode
-      : anchorNode?.parentElement;
-  return element?.closest('[data-highlight-field]')?.dataset.highlightField || null;
-}
-
-// Helper function to get displayed bookmarks (filtered and sorted)
-function getDisplayedBookmarks() {
-  const bookmarks = getBookmarks();
-  const filtered = filterBookmarks(bookmarks);
-
-  if (!activeProjectId) {
-    return sortBookmarks(filtered);
-  }
-
-  const activeProject = getProjects().find((p) => p.id === activeProjectId);
-  if (!activeProject) {
-    return sortBookmarks(filtered);
-  }
-
-  const activeProjectIds = new Set(activeProject.paperIds || []);
-  const allProjectIds = new Set(
-    getProjects().flatMap((project) => project.paperIds || [])
-  );
-  const projectBookmarks = sortBookmarks(
-    filtered.filter((bookmark) => activeProjectIds.has(bookmark.id))
-  );
-  const generalBookmarks = sortBookmarks(
-    filtered.filter((bookmark) => !allProjectIds.has(bookmark.id))
-  );
-
-  return [...projectBookmarks, ...generalBookmarks];
-}
-
-// Setup text selection listener for bookmark items
-document.addEventListener('mouseup', (event) => {
-  // Check if we're in the library drawer's bookmark list
-  const bookmarkList = document.getElementById('bookmarkList');
-  if (!bookmarkList) return;
-  
-  // Check if the selection is within a bookmark item
-  const bookmarkItem = event.target.closest('.bookmark-item');
-  if (!bookmarkItem || !bookmarkList.contains(bookmarkItem)) {
-    hideHighlightPopup();
-    return;
-  }
-  
-  const selection = window.getSelection();
-  const selectedText = selection.toString().trim();
-  
-  if (selectedText.length > 0) {
-    const highlightField = getSelectionHighlightField(selection);
-    if (!highlightField) {
-      hideHighlightPopup();
-      return;
-    }
-
-    // Get the bookmark ID from the nearest bookmark item
-    const bookmarkItems = Array.from(bookmarkList.querySelectorAll('.bookmark-item'));
-    const bookmarkIndex = bookmarkItems.indexOf(bookmarkItem);
-    
-    if (bookmarkIndex >= 0) {
-      const sortedBookmarks = getDisplayedBookmarks();
-      
-      if (bookmarkIndex < sortedBookmarks.length) {
-        const bookmarkId = sortedBookmarks[bookmarkIndex].id;
-        
-        // Get selection range to position popup at end of selection
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        
-        // Position at the end of selection (right side)
-        const x = rect.right + 5;
-        const y = rect.top + window.scrollY;
-        
-        showHighlightPopup(x, y, bookmarkId, selectedText, highlightField);
-        currentSelectionText = selectedText;
-        currentSelectionField = highlightField;
-      }
-    }
-  } else {
-    hideHighlightPopup();
-  }
-});
-
-// Handle clicking outside to hide popup
-document.addEventListener('mousedown', (event) => {
-  const popup = document.getElementById('textHighlightPopup');
-  if (popup && !popup.contains(event.target)) {
-    // Always hide popup when clicking outside, selection will trigger new popup if still valid
-    hideHighlightPopup();
-  }
-});
-
-// Handle highlight button click
-function initializeHighlightButton() {
-  const popup = document.getElementById('textHighlightPopup');
-  if (popup) {
-    const button = popup.querySelector('.highlight-popup-button');
-    if (button) {
-      button.addEventListener('click', () => {
-        // Read selection data from button data attributes (more reliable than global variables)
-        const bookmarkId = button.dataset.bookmarkId;
-        const selectedText = button.dataset.selectedText;
-        const selectedField = button.dataset.selectedField;
-        
-        if (bookmarkId && selectedText && selectedField) {
-          const settings = getHighlightSettings();
-          const color = settings.defaultHighlightColor || 'pastel-yellow';
-          addBookmarkTextHighlight(
-            bookmarkId,
-            selectedField,
-            selectedText,
-            color
-          );
-          renderBookmarkList();
-          hideHighlightPopup();
-        }
-      });
-    }
-  }
-}
-
-// Initialize highlight button after DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeHighlightButton);
-} else {
-  initializeHighlightButton();
-}
-
 // ---------- ADVANCED TOGGLE ----------
 
 function toggleAdvanced() {
@@ -721,24 +381,6 @@ const AI_TEMPLATES = {
 3. The conclusions
 
 Keep it concise and academic in tone.
-
-Title: ${bookmark.title}
-Authors: ${bookmark.authors || "Unknown"}
-Year: ${bookmark.year || "Unknown"}
-Abstract: ${bookmark.abstract || "No abstract available"}
-
-At the end, recommend between 3 to 5 related materials by author and title using the classic citation format:
-{Author, Material Title (Year Written)}
-Example: Ackoff, From Data to Wisdom (1989)`
-  },
-  highlights: {
-    name: "Highlights",
-    prompt: (bookmark) => `You are a research assistant. Analyze the following academic paper and provide key highlights in bullet point format:
-- Main theoretical contribution
-- Methodology used
-- Key findings (2-3 points)
-- Practical implications
-- Notable quotes or concepts
 
 Title: ${bookmark.title}
 Authors: ${bookmark.authors || "Unknown"}
@@ -1535,8 +1177,7 @@ async function toggleBookmark(entry, btn) {
       createdAt: Date.now(),
       googleLinks: [],
       googleLinksStatus: "pending",
-      note: "",
-      textHighlights: []
+      note: ""
     };
     bookmarks.push(pendingEntry);
     btn.style.color = "var(--accent-bookmarked)";
@@ -1730,7 +1371,6 @@ function createSettingsDrawer() {
 
           <select id="openaiDefaultTemplate" title="Default Output Template">
             <option value="paragraph">Paragraph</option>
-            <option value="highlights">Highlights</option>
             <option value="research_analysis_paragraph">Research Analysis (Paragraph)</option>
             <option value="research_analysis_bullets">Research Analysis (Bullet Points)</option>
             <option value="arguments_main_points">Arguments and Main Points</option>
@@ -1783,28 +1423,6 @@ function createSettingsDrawer() {
 
       <div id="googleSettingsStatus" class="settings-note">
         Tip: Restrict your API key by HTTP referrer to your GitHub Pages domain.
-      </div>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">
-        Highlighting Preferences
-      </div>
-      <div class="settings-grid">
-        <label for="defaultHighlightColor">
-          Default text highlight color
-          <select id="defaultHighlightColor" name="defaultHighlightColor">
-            <option value="pastel-red">Pastel Red</option>
-            <option value="pastel-blue">Pastel Blue</option>
-            <option value="pastel-yellow" selected>Pastel Yellow</option>
-            <option value="pastel-green">Pastel Green</option>
-            <option value="pastel-grey">Pastel Grey</option>
-          </select>
-        </label>
-        <button type="button" onclick="saveHighlightSettings()" style="width: 100%;">Save Highlight Settings</button>
-      </div>
-      <div class="settings-note">
-        Choose the default color used when highlighting selected text in bookmarks.
       </div>
     </div>
 
@@ -2197,11 +1815,7 @@ function createBookmarkListItem(b) {
   
   const title = document.createElement("div");
   title.className = "bookmark-item-title";
-  title.dataset.highlightField = "title";
-  title.innerHTML = renderHighlightedText(
-    b.title || "Untitled",
-    getBookmarkTextHighlights(b, "title")
-  );
+  title.textContent = b.title || "Untitled";
   
   const actions = document.createElement("div");
   actions.className = "bookmark-item-actions";
@@ -2220,7 +1834,6 @@ function createBookmarkListItem(b) {
   generateDropdown.className = "generate-dropdown-menu";
   generateDropdown.innerHTML = `
     <button type="button" class="dropdown-item" data-template="paragraph">Paragraph</button>
-    <button type="button" class="dropdown-item" data-template="highlights">Highlights</button>
     <button type="button" class="dropdown-item" data-template="research_analysis_paragraph">Research Analysis (Paragraph)</button>
     <button type="button" class="dropdown-item" data-template="research_analysis_bullets">Research Analysis (Bullet Points)</button>
     <button type="button" class="dropdown-item" data-template="arguments_main_points">Arguments and Main Points</button>
@@ -2276,11 +1889,7 @@ function createBookmarkListItem(b) {
   
   const meta = document.createElement("div");
   meta.className = "bookmark-item-meta";
-  meta.dataset.highlightField = "meta";
-  meta.innerHTML = renderHighlightedText(
-    [b.year, b.authors].filter(Boolean).join(" • "),
-    getBookmarkTextHighlights(b, "meta")
-  );
+  meta.textContent = [b.year, b.authors].filter(Boolean).join(" • ");
   
   const details = document.createElement("div");
   details.className = "bookmark-item-details";
@@ -2312,9 +1921,8 @@ function createBookmarkListItem(b) {
          <div class="chatty-header">
            <span class="chatty-name">🤖 Chatty</span>
          </div>
-         <div class="chatty-content" id="chatty-status-${b.id}" data-highlight-field="aiSummary">${renderHighlightedText(
-           b.aiSummary,
-           getBookmarkTextHighlights(b, "aiSummary")
+         <div class="chatty-content" id="chatty-status-${b.id}">${escapeHtml(
+           b.aiSummary
          )}</div>
        </div>`
     : "";
@@ -2327,9 +1935,8 @@ function createBookmarkListItem(b) {
          <div class="chatty-header">
            <span class="chatty-name">🤖 Abstraction</span>
          </div>
-         <div class="chatty-content" id="chatty-status-${b.id}" data-highlight-field="abstract">${renderHighlightedText(
-           b.aiAbstract,
-           getBookmarkTextHighlights(b, "abstract")
+         <div class="chatty-content" id="chatty-status-${b.id}">${escapeHtml(
+           b.aiAbstract
          )}</div>
          <div class="chatty-warning">Generated with OpenAI, may be inaccurate</div>
        </div>`;
@@ -2339,14 +1946,10 @@ function createBookmarkListItem(b) {
          <div class="chatty-header">
            <span class="chatty-name">Abstraction</span>
          </div>
-         <div class="chatty-content" data-highlight-field="abstract">${renderHighlightedText(
-           b.abstract,
-           getBookmarkTextHighlights(b, "abstract")
-         )}</div>
+         <div class="chatty-content">${escapeHtml(b.abstract)}</div>
        </div>`;
   }
   
-  const detailHighlights = getBookmarkTextHighlights(b, "details");
   const detailYearText = `${b.year || "Unknown"}${
     b.publication_date ? ` (${b.publication_date})` : ""
   }`;
@@ -2356,28 +1959,16 @@ function createBookmarkListItem(b) {
   
   details.innerHTML = `
     <div class="bookmark-item-info">
-      <small data-highlight-field="details">${renderHighlightedText(
-        detailYearText,
-        detailHighlights
-      )}</small>
-      <small data-highlight-field="details">${renderHighlightedText(
-        b.authors || "",
-        detailHighlights
-      )}</small>
+      <small>${escapeHtml(detailYearText)}</small>
+      <small>${escapeHtml(b.authors || "")}</small>
       ${
         detailCitationsText
-          ? `<small data-highlight-field="details">${renderHighlightedText(
-              detailCitationsText,
-              detailHighlights
-            )}</small>`
+          ? `<small>${escapeHtml(detailCitationsText)}</small>`
           : ""
       }
       ${
         detailDoiText
-          ? `<small data-highlight-field="details">${renderHighlightedText(
-              detailDoiText,
-              detailHighlights
-            )}</small>`
+          ? `<small>${escapeHtml(detailDoiText)}</small>`
           : ""
       }
     </div>
@@ -2629,15 +2220,17 @@ function initializeSettings() {
       document.getElementById("openaiMaxTokens").value = openaiSettings.maxTokens;
       document.getElementById("tokensValue").textContent = openaiSettings.maxTokens;
       document.getElementById("openaiGenerateAbstractions").checked = openaiSettings.generateAbstractions;
-      document.getElementById("openaiDefaultTemplate").value = openaiSettings.defaultTemplate;
+      const defaultTemplateSelect = document.getElementById("openaiDefaultTemplate");
+      if (defaultTemplateSelect) {
+        const defaultTemplateValue =
+          defaultTemplateSelect.querySelector(`option[value="${openaiSettings.defaultTemplate}"]`)
+            ? openaiSettings.defaultTemplate
+            : DEFAULT_TEMPLATE;
+        defaultTemplateSelect.value = defaultTemplateValue;
+      }
       document.getElementById("openaiAutogenerate").checked = openaiSettings.autogenerate;
     }
   }
-
-  // Load Highlight settings
-  const highlightSettings = getHighlightSettings();
-  const defaultHighlightColorInput = document.getElementById("defaultHighlightColor");
-  if (defaultHighlightColorInput) defaultHighlightColorInput.value = highlightSettings.defaultHighlightColor;
 }
 
 // Settings are initialized when the settings drawer is created
