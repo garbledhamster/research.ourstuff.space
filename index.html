@@ -1,40 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Research Loader</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#111111" />
-  <meta name="application-name" content="Research Loader" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Research Loader" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="msapplication-TileColor" content="#111111" />
-  <meta name="msapplication-TileImage" content="assets/favicon-square/android-chrome-512x512.png" />
-  <link rel="icon" type="image/x-icon" href="assets/favicon-square/favicon.ico" />
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-square/favicon-16x16.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-square/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-square/android-chrome-192x192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon-square/android-chrome-512x512.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon-square/apple-touch-icon.png" />
-  <link rel="manifest" href="assets/favicon-square/site.webmanifest" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
-  <link rel="stylesheet" href="https://unpkg.com/open-props/normalize.min.css" />
-  <link rel="stylesheet" href="https://unpkg.com/open-props/open-props.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111111">
+  <meta name="application-name" content="Research Loader">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Research Loader">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="msapplication-TileColor" content="#111111">
+  <meta name="msapplication-TileImage" content="assets/favicon-square/android-chrome-512x512.png">
+  <link rel="icon" type="image/x-icon" href="assets/favicon-square/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-square/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-square/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-square/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon-square/android-chrome-512x512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon-square/apple-touch-icon.png">
+  <link rel="manifest" href="assets/favicon-square/site.webmanifest">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/open-props/normalize.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/open-props/open-props.min.css">
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
-  />
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="assets/site.css" />
+  >
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="assets/site.css">
 </head>
 
 <body>
   <!-- Navigation Bar -->
   <nav class="navbar">
     <div class="navbar-brand">
-      <img class="navbar-logo" src="assets/logo-circle.svg" alt="Research Loader logo" />
+      <img class="navbar-logo" src="assets/logo-circle.svg" alt="Research Loader logo">
       <h1 class="navbar-title">Research Loader</h1>
     </div>
     <div class="navbar-actions">
@@ -66,7 +66,7 @@
           type="text"
           placeholder="Search Plato, Ackoff, DIKW..."
           onkeydown="if(event.key==='Enter') search()"
-        />
+        >
 
         <select id="sortOrder" title="Sort results">
           <option value="">Sort: Relevance</option>
@@ -85,24 +85,24 @@
     <section class="advanced-section">
       <div id="advancedPanel" class="advanced-panel">
         <div class="adv-grid">
-          <input id="exactPhrase" type="text" placeholder="Exact phrase (we add quotes for you)" />
+          <input id="exactPhrase" type="text" placeholder="Exact phrase (we add quotes for you)">
 
-          <input id="titleTerm" type="text" placeholder="Title contains (filter: title.search)" />
+          <input id="titleTerm" type="text" placeholder="Title contains (filter: title.search)">
           <input
             id="abstractTerm"
             type="text"
             placeholder="Abstract contains (filter: abstract.search)"
-          />
+          >
 
-          <input id="authorName" type="text" placeholder="Author name (lookup → author.id filter)" />
+          <input id="authorName" type="text" placeholder="Author name (lookup → author.id filter)">
           <input
             id="sourceName"
             type="text"
             placeholder="Source/Journal name (lookup → source.id filter)"
-          />
+          >
 
-          <input id="fromYear" type="number" placeholder="From year (e.g., 1950)" />
-          <input id="toYear" type="number" placeholder="To year (e.g., 2026)" />
+          <input id="fromYear" type="number" placeholder="From year (e.g., 1950)">
+          <input id="toYear" type="number" placeholder="To year (e.g., 2026)">
         </div>
 
         <div class="adv-note">
@@ -130,7 +130,7 @@
           <div class="modal__content">
             <div class="form-group">
               <label for="project-name-input">Project name</label>
-              <input id="project-name-input" type="text" autocomplete="off" required />
+              <input id="project-name-input" type="text" autocomplete="off" required>
             </div>
             <div class="form-group">
               <label for="project-description-input">Description (optional)</label>
@@ -161,7 +161,7 @@
           <div class="modal__content">
             <div class="form-group">
               <label for="edit-project-name-input">Project name</label>
-              <input id="edit-project-name-input" type="text" autocomplete="off" required />
+              <input id="edit-project-name-input" type="text" autocomplete="off" required>
             </div>
             <div class="form-group">
               <label for="edit-project-description-input">Description (optional)</label>
