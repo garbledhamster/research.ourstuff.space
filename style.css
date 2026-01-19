@@ -428,6 +428,29 @@ body {
   text-align: left;
 }
 
+.bookmark-source-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin: 6px 0;
+}
+
+.bookmark-refresh-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--surface-1);
+  color: var(--font-color);
+}
+
+.bookmark-refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .bookmark-item-info {
   display: grid;
   gap: 4px;
