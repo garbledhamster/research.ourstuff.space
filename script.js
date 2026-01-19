@@ -7,6 +7,7 @@ let totalResults = 0;
 let loadedResults = 0;
 let bookmarkFilterTerm = "";
 let bookmarkSortOrder = "recent_desc";
+let activeProjectId = null; // Track the currently active project
 
 // Current drawer view: "bookmarks" or "projects"
 let currentView = "bookmarks";
@@ -67,6 +68,19 @@ function saveProjects(data) {
   localStorage.setItem("researchProjects", JSON.stringify(data));
 }
 
+function getActiveProjectId() {
+  return localStorage.getItem("activeProjectId") || null;
+}
+
+function setActiveProjectId(projectId) {
+  if (projectId) {
+    localStorage.setItem("activeProjectId", projectId);
+  } else {
+    localStorage.removeItem("activeProjectId");
+  }
+  activeProjectId = projectId;
+}
+
 function createProject(name, description = "") {
   const projects = getProjects();
   const newProject = {
@@ -84,6 +98,10 @@ function createProject(name, description = "") {
 function deleteProject(projectId) {
   const projects = getProjects().filter(p => p.id !== projectId);
   saveProjects(projects);
+  // If deleting the active project, deactivate it
+  if (activeProjectId === projectId) {
+    setActiveProjectId(null);
+  }
   renderCurrentView();
 }
 
@@ -186,6 +204,17 @@ function removeBookmark(id) {
 }
 
 // ---------- UI INIT ----------
+
+// Initialize MicroModal
+if (typeof MicroModal !== 'undefined') {
+  MicroModal.init({
+    disableScroll: true,
+    awaitCloseAnimation: true
+  });
+}
+
+// Initialize active project from storage
+activeProjectId = getActiveProjectId();
 
 createLibraryDrawer();
 createSettingsDrawer();
@@ -1475,7 +1504,15 @@ function renderBookmarksView() {
   if (!container) return;
 
   const drawerTitle = document.getElementById("libraryDrawerTitle");
-  if (drawerTitle) drawerTitle.innerText = "Bookmarks";
+  const activeProject = activeProjectId ? getProjects().find(p => p.id === activeProjectId) : null;
+  
+  if (drawerTitle) {
+    if (activeProject) {
+      drawerTitle.innerHTML = `Bookmarks <span class="project-active-badge">${activeProject.name}</span>`;
+    } else {
+      drawerTitle.innerText = "Bookmarks";
+    }
+  }
 
   const actionBtn = document.getElementById("libraryDrawerActionBtn");
   if (actionBtn) {
@@ -1552,12 +1589,50 @@ function renderProjectsView() {
 }
 
 function showCreateProjectDialog() {
-  const name = prompt("Project name:");
-  if (!name || !name.trim()) return;
+  // Reset form
+  const form = document.getElementById('create-project-form');
+  if (form) {
+    form.reset();
+  }
+  
+  // Show modal
+  if (typeof MicroModal !== 'undefined') {
+    MicroModal.show('modal-create-project');
+  }
+}
 
-  const description = prompt("Project description (optional):");
-  createProject(name.trim(), description?.trim() || "");
-  renderProjectList();
+// Handle project creation form submission
+function initializeProjectModal() {
+  const submitBtn = document.getElementById('create-project-submit');
+  const form = document.getElementById('create-project-form');
+  
+  if (!submitBtn || !form) return;
+  
+  submitBtn.onclick = (e) => {
+    e.preventDefault();
+    
+    const nameInput = document.getElementById('project-name-input');
+    const descriptionInput = document.getElementById('project-description-input');
+    
+    const name = nameInput?.value.trim() || '';
+    const description = descriptionInput?.value.trim() || '';
+    
+    if (!name) {
+      nameInput?.focus();
+      return;
+    }
+    
+    // Create the project
+    createProject(name, description);
+    
+    // Close modal
+    if (typeof MicroModal !== 'undefined') {
+      MicroModal.close('modal-create-project');
+    }
+    
+    // Render the updated project list
+    renderProjectList();
+  };
 }
 
 function renderProjectList() {
@@ -1598,9 +1673,40 @@ function renderProjectList() {
     const title = document.createElement("div");
     title.className = "project-item-title";
     title.innerText = project.name;
+    
+    // Add active badge if this is the active project
+    if (activeProjectId === project.id) {
+      const badge = document.createElement("span");
+      badge.className = "project-active-badge";
+      badge.innerText = "ACTIVE";
+      title.appendChild(badge);
+    }
 
     const actions = document.createElement("div");
     actions.className = "project-item-actions";
+    
+    // Add Set Active or Deactivate button
+    const activeButton = document.createElement("button");
+    activeButton.type = "button";
+    activeButton.className = "project-ghost-button";
+    
+    if (activeProjectId === project.id) {
+      activeButton.innerText = "Deactivate";
+      activeButton.onclick = (event) => {
+        event.stopPropagation();
+        setActiveProjectId(null);
+        renderProjectList();
+        renderBookmarkList(); // Update bookmark view
+      };
+    } else {
+      activeButton.innerText = "Set Active";
+      activeButton.onclick = (event) => {
+        event.stopPropagation();
+        setActiveProjectId(project.id);
+        renderProjectList();
+        renderBookmarkList(); // Update bookmark view
+      };
+    }
 
     const toggleButton = document.createElement("button");
     toggleButton.type = "button";
@@ -1618,6 +1724,7 @@ function renderProjectList() {
       }
     };
 
+    actions.appendChild(activeButton);
     actions.appendChild(toggleButton);
     actions.appendChild(deleteButton);
 
@@ -1699,8 +1806,16 @@ function renderBookmarkList() {
   const list = document.getElementById("bookmarkList");
   if (!list) return;
 
-  const allBookmarks = getBookmarks();
+  let allBookmarks = getBookmarks();
   const summary = document.getElementById("bookmarkSummary");
+
+  // Filter by active project if one is set
+  if (activeProjectId) {
+    const activeProject = getProjects().find(p => p.id === activeProjectId);
+    if (activeProject) {
+      allBookmarks = allBookmarks.filter(b => activeProject.paperIds.includes(b.id));
+    }
+  }
 
   list.innerHTML = "";
 
@@ -1712,17 +1827,28 @@ function renderBookmarkList() {
   const bookmarks = sortBookmarks(filtered);
 
   if (summary) {
-    summary.innerText = bookmarkFilterTerm
-      ? `Showing ${bookmarks.length} of ${allBookmarks.length} bookmarks`
-      : `${allBookmarks.length} bookmarks saved`;
+    const activeProject = activeProjectId ? getProjects().find(p => p.id === activeProjectId) : null;
+    if (activeProject) {
+      summary.innerText = bookmarkFilterTerm
+        ? `Showing ${bookmarks.length} of ${allBookmarks.length} bookmarks in ${activeProject.name}`
+        : `${allBookmarks.length} bookmarks in ${activeProject.name}`;
+    } else {
+      summary.innerText = bookmarkFilterTerm
+        ? `Showing ${bookmarks.length} of ${allBookmarks.length} bookmarks (General)`
+        : `${allBookmarks.length} bookmarks (General)`;
+    }
   }
 
   if (bookmarks.length === 0) {
     const empty = document.createElement("div");
     empty.className = "small-note";
-    empty.innerText = bookmarkFilterTerm
-      ? "No bookmarks match this filter."
-      : "No bookmarks yet.";
+    if (activeProjectId) {
+      empty.innerText = "No bookmarks in this project yet.";
+    } else {
+      empty.innerText = bookmarkFilterTerm
+        ? "No bookmarks match this filter."
+        : "No bookmarks yet.";
+    }
     list.appendChild(empty);
     return;
   }
@@ -1887,6 +2013,12 @@ function renderBookmarkList() {
       ${sourceSection}
       ${aiSummarySection}
       ${abstractSection}
+      <div class="project-assignment">
+        <label for="project-select-${b.id}">Assign to Project</label>
+        <select id="project-select-${b.id}">
+          <option value="">General (Unsorted)</option>
+        </select>
+      </div>
       <div class="bookmark-note">
         <label for="bookmark-note-${b.id}">Note</label>
         <textarea id="bookmark-note-${b.id}" placeholder="Add a note..."></textarea>
@@ -1898,6 +2030,51 @@ function renderBookmarkList() {
       noteInput.value = b.note || "";
       noteInput.addEventListener("input", (event) => {
         updateBookmarkNote(b.id, event.target.value);
+      });
+    }
+
+    // Setup project assignment dropdown
+    const projectSelect = details.querySelector(`#project-select-${b.id}`);
+    if (projectSelect) {
+      const projects = getProjects();
+      
+      // Find which project(s) contain this bookmark
+      let bookmarkProjectId = null;
+      for (const project of projects) {
+        if (project.paperIds.includes(b.id)) {
+          bookmarkProjectId = project.id;
+          break;
+        }
+      }
+      
+      // Populate dropdown with projects
+      projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.id;
+        option.textContent = project.name;
+        if (project.id === bookmarkProjectId) {
+          option.selected = true;
+        }
+        projectSelect.appendChild(option);
+      });
+      
+      // Handle project assignment changes
+      projectSelect.addEventListener('change', (event) => {
+        const newProjectId = event.target.value;
+        const oldProjectId = bookmarkProjectId;
+        
+        // Remove from old project if it was in one
+        if (oldProjectId) {
+          removePaperFromProject(oldProjectId, b.id);
+        }
+        
+        // Add to new project if one was selected
+        if (newProjectId) {
+          addPaperToProject(newProjectId, b.id);
+        }
+        
+        // Update the stored project ID
+        bookmarkProjectId = newProjectId || null;
       });
     }
 
@@ -1983,3 +2160,10 @@ function initializeSettings() {
 }
 
 // Settings are initialized when the settings drawer is created
+
+// Initialize project modal after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeProjectModal);
+} else {
+  initializeProjectModal();
+}
