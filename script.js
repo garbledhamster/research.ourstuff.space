@@ -2116,14 +2116,72 @@ function createBookmarkListItem(b, options = {}) {
     const addToProjectButton = document.createElement("button");
     addToProjectButton.type = "button";
     addToProjectButton.className = "bookmark-icon-button bookmark-action-button";
-    addToProjectButton.title = activeProjectName
+    const tooltipLabel = activeProjectName
       ? `Add to ${activeProjectName}`
       : "Add to active project";
-    addToProjectButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span>Add to ${escapeHtml(activeProjectName || "Active")}</span>`;
-    addToProjectButton.onclick = (event) => {
+    addToProjectButton.setAttribute("aria-label", tooltipLabel);
+    addToProjectButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`;
+    const tooltip = document.createElement("span");
+    tooltip.className = "bookmark-tooltip";
+    const tooltipId = `bookmark-add-tooltip-${String(b.id).replace(
+      /[^a-zA-Z0-9_-]/g,
+      ""
+    )}`;
+    tooltip.id = tooltipId;
+    tooltip.role = "tooltip";
+    tooltip.textContent = tooltipLabel;
+    addToProjectButton.setAttribute("aria-describedby", tooltipId);
+    addToProjectButton.appendChild(tooltip);
+
+    let tooltipTimer = null;
+    let tooltipActive = false;
+
+    const showTooltip = () => {
+      addToProjectButton.classList.add("show-tooltip");
+      tooltipActive = true;
+    };
+
+    const hideTooltip = () => {
+      addToProjectButton.classList.remove("show-tooltip");
+      tooltipActive = false;
+    };
+
+    addToProjectButton.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "touch") return;
+      tooltipTimer = window.setTimeout(showTooltip, 500);
+    });
+
+    const clearTooltipTimer = () => {
+      if (tooltipTimer) {
+        window.clearTimeout(tooltipTimer);
+        tooltipTimer = null;
+      }
+    };
+
+    addToProjectButton.addEventListener("pointerup", (event) => {
+      if (event.pointerType !== "touch") return;
+      clearTooltipTimer();
+      if (tooltipActive) {
+        window.setTimeout(hideTooltip, 1200);
+      }
+    });
+
+    addToProjectButton.addEventListener("pointerleave", clearTooltipTimer);
+    addToProjectButton.addEventListener("pointercancel", () => {
+      clearTooltipTimer();
+      hideTooltip();
+    });
+
+    addToProjectButton.addEventListener("click", (event) => {
+      if (tooltipActive) {
+        event.preventDefault();
+        event.stopPropagation();
+        hideTooltip();
+        return;
+      }
       event.stopPropagation();
       addPaperToProject(activeProjectIdOption, b.id);
-    };
+    });
     actions.appendChild(addToProjectButton);
   }
   
