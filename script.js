@@ -1559,6 +1559,15 @@ function renderBookmarkList() {
          </div>`
       : "";
 
+    const abstractSection = b.abstract && b.abstract.length >= 30
+      ? `<div class="chatty-summary">
+           <div class="chatty-header">
+             <span class="chatty-name">Abstraction</span>
+           </div>
+           <div class="chatty-content">${escapeHtml(b.abstract)}</div>
+         </div>`
+      : "";
+
     details.innerHTML = `
       <div class="bookmark-item-info">
         <small>${b.year || "Unknown"}${
@@ -1575,11 +1584,11 @@ function renderBookmarkList() {
       ${renderSourcePills(googleLinks)}
       ${sourceSection}
       ${aiSummarySection}
+      ${abstractSection}
       <div class="bookmark-note">
         <label for="bookmark-note-${b.id}">Note</label>
         <textarea id="bookmark-note-${b.id}" placeholder="Add a note..."></textarea>
       </div>
-      <p>${escapeHtml(b.abstract || "")}</p>
     `;
 
     const noteInput = details.querySelector("textarea");
