@@ -385,6 +385,34 @@ body {
   padding: 8px 10px;
   border-top: 1px solid var(--border-color);
   background: var(--surface-1);
+  /* Drawer animation */
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-10px);
+  transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease, padding 0.3s ease;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Show navbar on hover for desktop */
+@media (min-width: 769px) {
+  .bookmark-item:hover .bookmark-item-actions {
+    max-height: 100px;
+    opacity: 1;
+    transform: translateY(0);
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+
+/* Show navbar when active class is present (for mobile) */
+.bookmark-item.actions-visible .bookmark-item-actions {
+  max-height: 100px;
+  opacity: 1;
+  transform: translateY(0);
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .bookmark-icon-button {
