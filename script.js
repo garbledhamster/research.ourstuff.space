@@ -2029,6 +2029,19 @@ function renderProjectList() {
   });
 }
 
+const bookmarkToggleIcons = {
+  collapsed: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  expanded: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="3 3 21 21"/><polyline points="15 3 21 3 21 9"/></svg>`
+};
+
+function setBookmarkToggleState(button, isExpanded) {
+  button.innerHTML = isExpanded
+    ? bookmarkToggleIcons.expanded
+    : bookmarkToggleIcons.collapsed;
+  button.title = isExpanded ? "Hide details" : "View details";
+  button.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+}
+
 function createBookmarkListItem(b, options = {}) {
   const item = document.createElement("div");
   item.className = "bookmark-item";
@@ -2098,9 +2111,7 @@ function createBookmarkListItem(b, options = {}) {
   toggleButton.type = "button";
   toggleButton.className = "bookmark-icon-button";
   toggleButton.classList.add("bookmark-toggle-button");
-  toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
-  toggleButton.title = "View details";
-  toggleButton.setAttribute("aria-expanded", "false");
+  setBookmarkToggleState(toggleButton, false);
   
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
@@ -2382,15 +2393,13 @@ function createBookmarkListItem(b, options = {}) {
     if (currentExpandedBookmarkDetails && currentExpandedBookmarkDetails !== details) {
       currentExpandedBookmarkDetails.hidden = true;
       if (currentExpandedBookmarkButton) {
-        currentExpandedBookmarkButton.title = "View details";
-        currentExpandedBookmarkButton.setAttribute("aria-expanded", "false");
+        setBookmarkToggleState(currentExpandedBookmarkButton, false);
       }
     }
   
     // Toggle current card
     details.hidden = !details.hidden;
-    toggleButton.title = details.hidden ? "View details" : "Hide details";
-    toggleButton.setAttribute("aria-expanded", details.hidden ? "false" : "true");
+    setBookmarkToggleState(toggleButton, !details.hidden);
   
     // Update tracking
     if (details.hidden) {
@@ -2554,7 +2563,7 @@ function restoreBookmarkListView(list, expandedBookmarkId, scrollTop) {
       const toggleButton = item.querySelector(".bookmark-toggle-button");
       if (details && toggleButton) {
         details.hidden = false;
-        toggleButton.innerText = "Hide";
+        setBookmarkToggleState(toggleButton, true);
         currentExpandedBookmarkDetails = details;
         currentExpandedBookmarkButton = toggleButton;
       }
