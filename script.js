@@ -177,10 +177,14 @@ createLibraryDrawer();
 createSettingsDrawer();
 
 // Close dropdowns when clicking outside
-document.addEventListener('click', () => {
-  document.querySelectorAll('.generate-dropdown-menu.show').forEach(menu => {
-    menu.classList.remove('show');
-  });
+document.addEventListener('click', (event) => {
+  // Check if click is outside any dropdown
+  const isClickInsideDropdown = event.target.closest('.generate-dropdown-container');
+  if (!isClickInsideDropdown) {
+    document.querySelectorAll('.generate-dropdown-menu.show').forEach(menu => {
+      menu.classList.remove('show');
+    });
+  }
 });
 
 // ---------- ADVANCED TOGGLE ----------
@@ -237,7 +241,7 @@ function getOpenAISettings() {
     model: localStorage.getItem("openaiModel") || "gpt-4o-mini",
     temperature: parseFloat(localStorage.getItem("openaiTemperature") || "0.7"),
     maxTokens: parseInt(localStorage.getItem("openaiMaxTokens") || "300", 10),
-    defaultTemplate: localStorage.getItem("openaiDefaultTemplate") || "paragraph",
+    defaultTemplate: localStorage.getItem("openaiDefaultTemplate") || DEFAULT_TEMPLATE,
     autogenerate: localStorage.getItem("openaiAutogenerate") === "true",
   };
 }
@@ -314,7 +318,7 @@ function saveOpenAISettings() {
     document.getElementById("openaiMaxTokens")?.value || "300",
     10
   );
-  const defaultTemplate = document.getElementById("openaiDefaultTemplate")?.value || "paragraph";
+  const defaultTemplate = document.getElementById("openaiDefaultTemplate")?.value || DEFAULT_TEMPLATE;
   const autogenerate = document.getElementById("openaiAutogenerate")?.checked || false;
   const apiKey = getOpenAISettings().apiKey;
 
@@ -478,6 +482,8 @@ Example: Ackoff, From Data to Wisdom (1989)`
   }
 };
 
+const DEFAULT_TEMPLATE = 'paragraph';
+
 async function generateResearchNote(bookmarkId, templateId) {
   const bookmarks = getBookmarks();
   const bookmark = bookmarks.find((b) => b.id === bookmarkId);
@@ -491,7 +497,7 @@ async function generateResearchNote(bookmarkId, templateId) {
 
   // Use provided templateId or fall back to default
   const selectedTemplate = templateId || settings.defaultTemplate;
-  const template = AI_TEMPLATES[selectedTemplate] || AI_TEMPLATES.paragraph;
+  const template = AI_TEMPLATES[selectedTemplate] || AI_TEMPLATES[DEFAULT_TEMPLATE];
 
   const statusElement = document.getElementById(`chatty-status-${bookmarkId}`);
   if (statusElement) {
