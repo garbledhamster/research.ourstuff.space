@@ -108,11 +108,56 @@
       </div>
     </section>
 
+    <section class="settings-section" aria-labelledby="highlighting-settings-title">
+      <div class="settings-section-title" id="highlighting-settings-title">
+        Highlighting Preferences
+      </div>
+      <div class="settings-grid">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <input id="enableHighlighting" type="checkbox" name="enableHighlighting" />
+          <label for="enableHighlighting" style="margin: 0;">Enable highlights for bookmarks</label>
+        </div>
+        <label for="defaultHighlightColor">
+          Default highlight color
+          <select id="defaultHighlightColor" name="defaultHighlightColor">
+            <option value="pastel-red">Pastel Red</option>
+            <option value="pastel-blue">Pastel Blue</option>
+            <option value="pastel-yellow">Pastel Yellow</option>
+            <option value="pastel-green">Pastel Green</option>
+            <option value="pastel-grey">Pastel Grey</option>
+          </select>
+        </label>
+      </div>
+      <div class="settings-note">
+        Choose whether new bookmarks should be highlighted by default and which pastel color to use.
+      </div>
+    </section>
+
     <!-- RESULTS -->
     <section class="results-section">
       <div id="results"></div>
     </section>
   </main>
+
+  <template id="bookmarkHighlightControls">
+    <fieldset class="bookmark-highlight-controls">
+      <legend>Highlight</legend>
+      <label>
+        Color
+        <select name="bookmarkHighlightColor" aria-label="Select highlight color">
+          <option value="pastel-red">Pastel Red</option>
+          <option value="pastel-blue">Pastel Blue</option>
+          <option value="pastel-yellow">Pastel Yellow</option>
+          <option value="pastel-green">Pastel Green</option>
+          <option value="pastel-grey">Pastel Grey</option>
+        </select>
+      </label>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" class="bookmark-apply-highlight">Apply highlight</button>
+        <button type="button" class="bookmark-clear-highlight">Clear highlight</button>
+      </div>
+    </fieldset>
+  </template>
 
   <script src="script.js"></script>
 </body>
