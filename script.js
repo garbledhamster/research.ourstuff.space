@@ -78,6 +78,40 @@ function setGoogleSettings(apiKey, cx) {
   localStorage.setItem("googleCx", cx || "");
 }
 
+function getHighlightSettings() {
+  return {
+    enableHighlighting: localStorage.getItem("enableHighlighting") === "true",
+    defaultHighlightColor: localStorage.getItem("defaultHighlightColor") || "pastel-yellow"
+  };
+}
+
+function setHighlightSettings(enableHighlighting, defaultHighlightColor) {
+  localStorage.setItem("enableHighlighting", String(enableHighlighting));
+  localStorage.setItem("defaultHighlightColor", defaultHighlightColor);
+}
+
+function saveHighlightSettings() {
+  const enableHighlighting = document.getElementById("enableHighlighting")?.checked || false;
+  const defaultHighlightColor = document.getElementById("defaultHighlightColor")?.value || "pastel-yellow";
+  
+  setHighlightSettings(enableHighlighting, defaultHighlightColor);
+  
+  // Show feedback
+  const section = document.getElementById("enableHighlighting")?.closest('.settings-section');
+  if (section) {
+    const note = section.querySelector('.settings-note');
+    if (note) {
+      const originalText = note.innerText;
+      note.innerText = "Highlight settings saved!";
+      note.style.color = "var(--pico-color-green-500)";
+      setTimeout(() => {
+        note.innerText = originalText;
+        note.style.color = "";
+      }, 2000);
+    }
+  }
+}
+
 function getProjects() {
   return JSON.parse(localStorage.getItem("researchProjects") || "[]");
 }
@@ -244,6 +278,137 @@ document.addEventListener('click', (event) => {
     document.querySelectorAll('.generate-dropdown-menu.show').forEach(menu => {
       menu.classList.remove('show');
     });
+  }
+});
+
+// Text selection highlight popup functionality
+let currentSelectionBookmarkId = null;
+
+function showHighlightPopup(x, y, bookmarkId) {
+  const popup = document.getElementById('textHighlightPopup');
+  if (!popup) return;
+
+  currentSelectionBookmarkId = bookmarkId;
+
+  // Position popup at the end of selection
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
+  
+  // Make visible
+  popup.classList.add('visible');
+  
+  // Ensure popup stays within screen bounds
+  const rect = popup.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  // Adjust horizontal position
+  if (rect.right > viewportWidth) {
+    popup.style.left = (viewportWidth - rect.width - 10) + 'px';
+  }
+  if (rect.left < 0) {
+    popup.style.left = '10px';
+  }
+  
+  // Adjust vertical position
+  if (rect.bottom > viewportHeight) {
+    popup.style.top = (viewportHeight - rect.height - 10) + 'px';
+  }
+  if (rect.top < 0) {
+    popup.style.top = '10px';
+  }
+}
+
+function hideHighlightPopup() {
+  const popup = document.getElementById('textHighlightPopup');
+  if (popup) {
+    popup.classList.remove('visible');
+  }
+  currentSelectionBookmarkId = null;
+}
+
+// Setup text selection listener for bookmark items
+document.addEventListener('mouseup', (event) => {
+  // Check if we're in the library drawer's bookmark list
+  const bookmarkList = document.getElementById('bookmarkList');
+  if (!bookmarkList) return;
+  
+  // Check if the selection is within a bookmark item
+  const bookmarkItem = event.target.closest('.bookmark-item');
+  if (!bookmarkItem || !bookmarkList.contains(bookmarkItem)) {
+    hideHighlightPopup();
+    return;
+  }
+  
+  const selection = window.getSelection();
+  const selectedText = selection.toString().trim();
+  
+  if (selectedText.length > 0) {
+    // Get the bookmark ID from the nearest bookmark item
+    const bookmarkItems = Array.from(bookmarkList.querySelectorAll('.bookmark-item'));
+    const bookmarkIndex = bookmarkItems.indexOf(bookmarkItem);
+    
+    if (bookmarkIndex >= 0) {
+      const bookmarks = getBookmarks();
+      let filteredBookmarks = bookmarks;
+      
+      // Filter by active project if one is set
+      if (activeProjectId) {
+        const activeProject = getProjects().find(p => p.id === activeProjectId);
+        if (activeProject) {
+          filteredBookmarks = bookmarks.filter(b => activeProject.paperIds.includes(b.id));
+        }
+      }
+      
+      const filtered = filterBookmarks(filteredBookmarks);
+      const sortedBookmarks = sortBookmarks(filtered);
+      
+      if (bookmarkIndex < sortedBookmarks.length) {
+        const bookmarkId = sortedBookmarks[bookmarkIndex].id;
+        
+        // Get selection range to position popup at end of selection
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        
+        // Position at the end of selection (right side)
+        const x = rect.right + 5;
+        const y = rect.top + window.scrollY;
+        
+        showHighlightPopup(x, y, bookmarkId);
+      }
+    }
+  } else {
+    hideHighlightPopup();
+  }
+});
+
+// Handle clicking outside to hide popup
+document.addEventListener('mousedown', (event) => {
+  const popup = document.getElementById('textHighlightPopup');
+  if (popup && !popup.contains(event.target)) {
+    const selection = window.getSelection();
+    if (!selection.toString().trim()) {
+      hideHighlightPopup();
+    }
+  }
+});
+
+// Handle highlight button click
+document.addEventListener('DOMContentLoaded', () => {
+  const popup = document.getElementById('textHighlightPopup');
+  if (popup) {
+    const button = popup.querySelector('.highlight-popup-button');
+    if (button) {
+      button.addEventListener('click', () => {
+        if (currentSelectionBookmarkId) {
+          const settings = getHighlightSettings();
+          const color = settings.defaultHighlightColor || 'pastel-yellow';
+          updateBookmarkHighlight(currentSelectionBookmarkId, color);
+          renderBookmarkList();
+          hideHighlightPopup();
+        }
+      });
+    }
   }
 });
 
@@ -1471,6 +1636,32 @@ function createSettingsDrawer() {
       </div>
     </div>
 
+    <div class="settings-section">
+      <div class="settings-section-title">
+        Highlighting Preferences
+      </div>
+      <div class="settings-grid">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <input id="enableHighlighting" type="checkbox" name="enableHighlighting" />
+          <label for="enableHighlighting" style="margin: 0;">Enable highlights for bookmarks</label>
+        </div>
+        <label for="defaultHighlightColor">
+          Default highlight color
+          <select id="defaultHighlightColor" name="defaultHighlightColor">
+            <option value="pastel-red">Pastel Red</option>
+            <option value="pastel-blue">Pastel Blue</option>
+            <option value="pastel-yellow" selected>Pastel Yellow</option>
+            <option value="pastel-green">Pastel Green</option>
+            <option value="pastel-grey">Pastel Grey</option>
+          </select>
+        </label>
+        <button type="button" onclick="saveHighlightSettings()" style="width: 100%;">Save Highlight Settings</button>
+      </div>
+      <div class="settings-note">
+        Choose whether new bookmarks should be highlighted by default and which pastel color to use.
+      </div>
+    </div>
+
     <div class="settings-note" style="margin-top: 20px;">
       All settings are stored locally in your browser and are never sent to any server except the respective APIs.
     </div>
@@ -2242,6 +2433,13 @@ function initializeSettings() {
       document.getElementById("openaiAutogenerate").checked = openaiSettings.autogenerate;
     }
   }
+
+  // Load Highlight settings
+  const highlightSettings = getHighlightSettings();
+  const enableHighlightingInput = document.getElementById("enableHighlighting");
+  const defaultHighlightColorInput = document.getElementById("defaultHighlightColor");
+  if (enableHighlightingInput) enableHighlightingInput.checked = highlightSettings.enableHighlighting;
+  if (defaultHighlightColorInput) defaultHighlightColorInput.value = highlightSettings.defaultHighlightColor;
 }
 
 // Settings are initialized when the settings drawer is created
