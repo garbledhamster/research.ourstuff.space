@@ -596,7 +596,7 @@ Provide only the abstract, nothing else.`;
     
     // Append project instruction if available
     if (projectInstruction) {
-      prompt += `\n\nAdditional instructions for this project: ${projectInstruction}`;
+      prompt += `\n\nAdditional instructions: ${projectInstruction}`;
     }
   }
 
