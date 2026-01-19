@@ -440,18 +440,30 @@ function getSelectionHighlightField(selection) {
 
 // Helper function to get displayed bookmarks (filtered and sorted)
 function getDisplayedBookmarks() {
-  let bookmarks = getBookmarks();
-  
-  // Filter by active project if one is set
-  if (activeProjectId) {
-    const activeProject = getProjects().find(p => p.id === activeProjectId);
-    if (activeProject) {
-      bookmarks = bookmarks.filter(b => activeProject.paperIds.includes(b.id));
-    }
-  }
-  
+  const bookmarks = getBookmarks();
   const filtered = filterBookmarks(bookmarks);
-  return sortBookmarks(filtered);
+
+  if (!activeProjectId) {
+    return sortBookmarks(filtered);
+  }
+
+  const activeProject = getProjects().find((p) => p.id === activeProjectId);
+  if (!activeProject) {
+    return sortBookmarks(filtered);
+  }
+
+  const activeProjectIds = new Set(activeProject.paperIds || []);
+  const allProjectIds = new Set(
+    getProjects().flatMap((project) => project.paperIds || [])
+  );
+  const projectBookmarks = sortBookmarks(
+    filtered.filter((bookmark) => activeProjectIds.has(bookmark.id))
+  );
+  const generalBookmarks = sortBookmarks(
+    filtered.filter((bookmark) => !allProjectIds.has(bookmark.id))
+  );
+
+  return [...projectBookmarks, ...generalBookmarks];
 }
 
 // Setup text selection listener for bookmark items
@@ -2176,20 +2188,308 @@ function renderProjectList() {
   });
 }
 
+function createBookmarkListItem(b) {
+  const item = document.createElement("div");
+  item.className = "bookmark-item";
+  
+  const header = document.createElement("div");
+  header.className = "bookmark-item-header";
+  
+  const title = document.createElement("div");
+  title.className = "bookmark-item-title";
+  title.dataset.highlightField = "title";
+  title.innerHTML = renderHighlightedText(
+    b.title || "Untitled",
+    getBookmarkTextHighlights(b, "title")
+  );
+  
+  const actions = document.createElement("div");
+  actions.className = "bookmark-item-actions";
+  
+  // Generate button with dropdown
+  const generateButtonContainer = document.createElement("div");
+  generateButtonContainer.className = "generate-dropdown-container";
+  
+  const generateButton = document.createElement("button");
+  generateButton.type = "button";
+  generateButton.className = "bookmark-icon-button";
+  generateButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`;
+  generateButton.title = "Generate AI research note";
+  
+  const generateDropdown = document.createElement("div");
+  generateDropdown.className = "generate-dropdown-menu";
+  generateDropdown.innerHTML = `
+    <button type="button" class="dropdown-item" data-template="paragraph">Paragraph</button>
+    <button type="button" class="dropdown-item" data-template="highlights">Highlights</button>
+    <button type="button" class="dropdown-item" data-template="research_analysis_paragraph">Research Analysis (Paragraph)</button>
+    <button type="button" class="dropdown-item" data-template="research_analysis_bullets">Research Analysis (Bullet Points)</button>
+    <button type="button" class="dropdown-item" data-template="arguments_main_points">Arguments and Main Points</button>
+    <button type="button" class="dropdown-item" data-template="connections_cited_works">Connections and Cited Works</button>
+  `;
+  
+  // Toggle dropdown on button click
+  generateButton.onclick = (event) => {
+    event.stopPropagation();
+    // Close all other dropdowns first
+    document.querySelectorAll('.generate-dropdown-menu.show').forEach(menu => {
+      if (menu !== generateDropdown) {
+        menu.classList.remove('show');
+      }
+    });
+    generateDropdown.classList.toggle('show');
+  };
+  
+  // Handle template selection
+  generateDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+    item.onclick = (event) => {
+      event.stopPropagation();
+      const templateId = item.dataset.template;
+      generateDropdown.classList.remove('show');
+      generateResearchNote(b.id, templateId);
+    };
+  });
+  
+  generateButtonContainer.appendChild(generateButton);
+  generateButtonContainer.appendChild(generateDropdown);
+  
+  const toggleButton = document.createElement("button");
+  toggleButton.type = "button";
+  toggleButton.className = "bookmark-icon-button";
+  toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+  toggleButton.title = "View details";
+  
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "bookmark-icon-button bookmark-danger";
+  deleteButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+  deleteButton.title = "Delete bookmark";
+  deleteButton.onclick = (event) => {
+    event.stopPropagation();
+    removeBookmark(b.id);
+  };
+  
+  actions.appendChild(generateButtonContainer);
+  actions.appendChild(toggleButton);
+  actions.appendChild(deleteButton);
+  
+  header.appendChild(title);
+  
+  const meta = document.createElement("div");
+  meta.className = "bookmark-item-meta";
+  meta.dataset.highlightField = "meta";
+  meta.innerHTML = renderHighlightedText(
+    [b.year, b.authors].filter(Boolean).join(" • "),
+    getBookmarkTextHighlights(b, "meta")
+  );
+  
+  const details = document.createElement("div");
+  details.className = "bookmark-item-details";
+  details.hidden = true;
+  
+  const googleLinks = Array.isArray(b.googleLinks)
+    ? b.googleLinks
+    : Array.isArray(b.pdfLinks)
+    ? b.pdfLinks
+    : [];
+  const googleStatus =
+    b.googleLinksStatus || b.pdfLinksStatus || "missing_settings";
+  let sourceSection = "";
+  
+  if (googleStatus === "pending") {
+    sourceSection = `<div class="small-note">Finding source links...</div>`;
+  } else if (googleStatus === "missing_settings") {
+    sourceSection = `<div class="small-note">Add your Google API key + cx to find sources.</div>`;
+  } else if (googleStatus === "missing_query") {
+    sourceSection = `<div class="small-note">Missing title or author for source lookup.</div>`;
+  } else if (googleStatus && googleStatus !== "ok") {
+    sourceSection = `<div class="small-note">Could not load source links (${escapeHtml(
+      googleStatus
+    )}).</div>`;
+  }
+  
+  const aiSummarySection = b.aiSummary
+    ? `<div class="chatty-summary">
+         <div class="chatty-header">
+           <span class="chatty-name">🤖 Chatty</span>
+         </div>
+         <div class="chatty-content" id="chatty-status-${b.id}" data-highlight-field="aiSummary">${renderHighlightedText(
+           b.aiSummary,
+           getBookmarkTextHighlights(b, "aiSummary")
+         )}</div>
+       </div>`
+    : "";
+  
+  // Display AI-generated abstract or original abstract
+  let abstractSection = "";
+  if (b.aiAbstract && b.aiAbstractGenerated) {
+    // AI-generated abstract with warning
+    abstractSection = `<div class="chatty-summary">
+         <div class="chatty-header">
+           <span class="chatty-name">🤖 Abstraction</span>
+         </div>
+         <div class="chatty-content" id="chatty-status-${b.id}" data-highlight-field="abstract">${renderHighlightedText(
+           b.aiAbstract,
+           getBookmarkTextHighlights(b, "abstract")
+         )}</div>
+         <div class="chatty-warning">Generated with OpenAI, may be inaccurate</div>
+       </div>`;
+  } else if (hasValidAbstract(b.abstract)) {
+    // Original abstract
+    abstractSection = `<div class="chatty-summary">
+         <div class="chatty-header">
+           <span class="chatty-name">Abstraction</span>
+         </div>
+         <div class="chatty-content" data-highlight-field="abstract">${renderHighlightedText(
+           b.abstract,
+           getBookmarkTextHighlights(b, "abstract")
+         )}</div>
+       </div>`;
+  }
+  
+  const detailHighlights = getBookmarkTextHighlights(b, "details");
+  const detailYearText = `${b.year || "Unknown"}${
+    b.publication_date ? ` (${b.publication_date})` : ""
+  }`;
+  const detailCitationsText =
+    b.cited_by_count != null ? `Citations: ${b.cited_by_count}` : "";
+  const detailDoiText = b.doi ? `DOI: ${b.doi}` : "";
+  
+  details.innerHTML = `
+    <div class="bookmark-item-info">
+      <small data-highlight-field="details">${renderHighlightedText(
+        detailYearText,
+        detailHighlights
+      )}</small>
+      <small data-highlight-field="details">${renderHighlightedText(
+        b.authors || "",
+        detailHighlights
+      )}</small>
+      ${
+        detailCitationsText
+          ? `<small data-highlight-field="details">${renderHighlightedText(
+              detailCitationsText,
+              detailHighlights
+            )}</small>`
+          : ""
+      }
+      ${
+        detailDoiText
+          ? `<small data-highlight-field="details">${renderHighlightedText(
+              detailDoiText,
+              detailHighlights
+            )}</small>`
+          : ""
+      }
+    </div>
+    ${renderSourcePills(googleLinks)}
+    ${sourceSection}
+    ${aiSummarySection}
+    ${abstractSection}
+    <div class="project-assignment">
+      <label for="project-select-${b.id}">Assign to Project</label>
+      <select id="project-select-${b.id}">
+        <option value="">General (Unsorted)</option>
+      </select>
+    </div>
+    <div class="bookmark-note">
+      <label for="bookmark-note-${b.id}">Note</label>
+      <textarea id="bookmark-note-${b.id}" placeholder="Add a note..."></textarea>
+    </div>
+  `;
+  
+  const noteInput = details.querySelector("textarea");
+  if (noteInput) {
+    noteInput.value = b.note || "";
+    noteInput.addEventListener("input", (event) => {
+      updateBookmarkNote(b.id, event.target.value);
+    });
+  }
+  
+  // Setup project assignment dropdown
+  const projectSelectId = `project-select-${b.id}`;
+  const projectSelect = details.querySelector(
+    `#${CSS.escape(projectSelectId)}`
+  );
+  if (projectSelect) {
+    const projects = getProjects();
+    
+    // Find which project(s) contain this bookmark
+    let bookmarkProjectId = null;
+    for (const project of projects) {
+      if (project.paperIds.includes(b.id)) {
+        bookmarkProjectId = project.id;
+        break;
+      }
+    }
+    
+    // Populate dropdown with projects
+    projects.forEach(project => {
+      const option = document.createElement('option');
+      option.value = project.id;
+      option.textContent = project.name;
+      if (project.id === bookmarkProjectId) {
+        option.selected = true;
+      }
+      projectSelect.appendChild(option);
+    });
+    
+    // Handle project assignment changes
+    projectSelect.addEventListener('change', (event) => {
+      const newProjectId = event.target.value;
+      const oldProjectId = bookmarkProjectId;
+      
+      // Remove from old project if it was in one
+      if (oldProjectId) {
+        removePaperFromProject(oldProjectId, b.id);
+      }
+      
+      // Add to new project if one was selected
+      if (newProjectId) {
+        addPaperToProject(newProjectId, b.id);
+      }
+      
+      // Update the stored project ID
+      bookmarkProjectId = newProjectId || null;
+    });
+  }
+  
+  toggleButton.onclick = () => {
+    // Collapse any currently expanded bookmark
+    if (currentExpandedBookmarkDetails && currentExpandedBookmarkDetails !== details) {
+      currentExpandedBookmarkDetails.hidden = true;
+      if (currentExpandedBookmarkButton) {
+        currentExpandedBookmarkButton.innerText = "Details";
+      }
+    }
+  
+    // Toggle current card
+    details.hidden = !details.hidden;
+    toggleButton.innerText = details.hidden ? "Details" : "Hide";
+  
+    // Update tracking
+    if (details.hidden) {
+      currentExpandedBookmarkDetails = null;
+      currentExpandedBookmarkButton = null;
+    } else {
+      currentExpandedBookmarkDetails = details;
+      currentExpandedBookmarkButton = toggleButton;
+    }
+  };
+  
+  item.appendChild(header);
+  item.appendChild(meta);
+  item.appendChild(details);
+  item.appendChild(actions);
+  
+  return item;
+}
+
 function renderBookmarkList() {
   const list = document.getElementById("bookmarkList");
   if (!list) return;
 
-  let allBookmarks = getBookmarks();
+  const allBookmarks = getBookmarks();
   const summary = document.getElementById("bookmarkSummary");
-
-  // Filter by active project if one is set
-  if (activeProjectId) {
-    const activeProject = getProjects().find(p => p.id === activeProjectId);
-    if (activeProject) {
-      allBookmarks = allBookmarks.filter(b => activeProject.paperIds.includes(b.id));
-    }
-  }
 
   list.innerHTML = "";
 
@@ -2198,329 +2498,91 @@ function renderBookmarkList() {
   currentExpandedBookmarkButton = null;
 
   const filtered = filterBookmarks(allBookmarks);
-  const bookmarks = sortBookmarks(filtered);
+  const activeProject = activeProjectId
+    ? getProjects().find((p) => p.id === activeProjectId)
+    : null;
 
-  if (summary) {
-    const activeProject = activeProjectId ? getProjects().find(p => p.id === activeProjectId) : null;
-    if (activeProject) {
-      summary.innerText = bookmarkFilterTerm
-        ? `Showing ${bookmarks.length} of ${allBookmarks.length} bookmarks in ${activeProject.name}`
-        : `${allBookmarks.length} bookmarks in ${activeProject.name}`;
-    } else {
+  if (!activeProject) {
+    const bookmarks = sortBookmarks(filtered);
+
+    if (summary) {
       summary.innerText = bookmarkFilterTerm
         ? `Showing ${bookmarks.length} of ${allBookmarks.length} bookmarks (General)`
         : `${allBookmarks.length} bookmarks (General)`;
     }
-  }
 
-  if (bookmarks.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "small-note";
-    if (activeProjectId) {
-      empty.innerText = "No bookmarks in this project yet.";
-    } else {
+    if (bookmarks.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "small-note";
       empty.innerText = bookmarkFilterTerm
         ? "No bookmarks match this filter."
         : "No bookmarks yet.";
+      list.appendChild(empty);
+      return;
     }
-    list.appendChild(empty);
+
+    bookmarks.forEach((b) => {
+      list.appendChild(createBookmarkListItem(b));
+    });
     return;
   }
 
-  bookmarks.forEach((b) => {
-    const item = document.createElement("div");
-    item.className = "bookmark-item";
+  const activeProjectIds = new Set(activeProject.paperIds || []);
+  const allProjectIds = new Set(
+    getProjects().flatMap((project) => project.paperIds || [])
+  );
+  const projectBookmarks = sortBookmarks(
+    filtered.filter((bookmark) => activeProjectIds.has(bookmark.id))
+  );
+  const generalBookmarks = sortBookmarks(
+    filtered.filter((bookmark) => !allProjectIds.has(bookmark.id))
+  );
 
-    const header = document.createElement("div");
-    header.className = "bookmark-item-header";
+  if (summary) {
+    summary.innerText = bookmarkFilterTerm
+      ? `Showing ${projectBookmarks.length} project and ${generalBookmarks.length} general bookmarks`
+      : `${projectBookmarks.length} bookmarks in ${activeProject.name} • ${generalBookmarks.length} general bookmarks`;
+  }
 
-    const title = document.createElement("div");
-    title.className = "bookmark-item-title";
-    title.dataset.highlightField = "title";
-    title.innerHTML = renderHighlightedText(
-      b.title || "Untitled",
-      getBookmarkTextHighlights(b, "title")
-    );
+  const projectHeader = document.createElement("div");
+  projectHeader.className = "bookmark-section-title";
+  projectHeader.innerText = activeProject.name;
+  list.appendChild(projectHeader);
 
-    const actions = document.createElement("div");
-    actions.className = "bookmark-item-actions";
-
-    // Generate button with dropdown
-    const generateButtonContainer = document.createElement("div");
-    generateButtonContainer.className = "generate-dropdown-container";
-    
-    const generateButton = document.createElement("button");
-    generateButton.type = "button";
-    generateButton.className = "bookmark-icon-button";
-    generateButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>`;
-    generateButton.title = "Generate AI research note";
-    
-    const generateDropdown = document.createElement("div");
-    generateDropdown.className = "generate-dropdown-menu";
-    generateDropdown.innerHTML = `
-      <button type="button" class="dropdown-item" data-template="paragraph">Paragraph</button>
-      <button type="button" class="dropdown-item" data-template="highlights">Highlights</button>
-      <button type="button" class="dropdown-item" data-template="research_analysis_paragraph">Research Analysis (Paragraph)</button>
-      <button type="button" class="dropdown-item" data-template="research_analysis_bullets">Research Analysis (Bullet Points)</button>
-      <button type="button" class="dropdown-item" data-template="arguments_main_points">Arguments and Main Points</button>
-      <button type="button" class="dropdown-item" data-template="connections_cited_works">Connections and Cited Works</button>
-    `;
-    
-    // Toggle dropdown on button click
-    generateButton.onclick = (event) => {
-      event.stopPropagation();
-      // Close all other dropdowns first
-      document.querySelectorAll('.generate-dropdown-menu.show').forEach(menu => {
-        if (menu !== generateDropdown) {
-          menu.classList.remove('show');
-        }
-      });
-      generateDropdown.classList.toggle('show');
-    };
-    
-    // Handle template selection
-    generateDropdown.querySelectorAll('.dropdown-item').forEach(item => {
-      item.onclick = (event) => {
-        event.stopPropagation();
-        const templateId = item.dataset.template;
-        generateDropdown.classList.remove('show');
-        generateResearchNote(b.id, templateId);
-      };
+  if (projectBookmarks.length === 0) {
+    const emptyProject = document.createElement("div");
+    emptyProject.className = "small-note";
+    emptyProject.innerText = bookmarkFilterTerm
+      ? "No project bookmarks match this filter."
+      : "No bookmarks in this project yet.";
+    list.appendChild(emptyProject);
+  } else {
+    projectBookmarks.forEach((b) => {
+      list.appendChild(createBookmarkListItem(b));
     });
-    
-    generateButtonContainer.appendChild(generateButton);
-    generateButtonContainer.appendChild(generateDropdown);
+  }
 
-    const toggleButton = document.createElement("button");
-    toggleButton.type = "button";
-    toggleButton.className = "bookmark-icon-button";
-    toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
-    toggleButton.title = "View details";
+  const divider = document.createElement("hr");
+  divider.className = "bookmark-section-divider";
+  list.appendChild(divider);
 
-    const deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.className = "bookmark-icon-button bookmark-danger";
-    deleteButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
-    deleteButton.title = "Delete bookmark";
-    deleteButton.onclick = (event) => {
-      event.stopPropagation();
-      removeBookmark(b.id);
-    };
+  const generalHeader = document.createElement("div");
+  generalHeader.className = "bookmark-section-title";
+  generalHeader.innerText = "General bookmarks";
+  list.appendChild(generalHeader);
 
-    actions.appendChild(generateButtonContainer);
-    actions.appendChild(toggleButton);
-    actions.appendChild(deleteButton);
-
-    header.appendChild(title);
-
-    const meta = document.createElement("div");
-    meta.className = "bookmark-item-meta";
-    meta.dataset.highlightField = "meta";
-    meta.innerHTML = renderHighlightedText(
-      [b.year, b.authors].filter(Boolean).join(" • "),
-      getBookmarkTextHighlights(b, "meta")
-    );
-
-    const details = document.createElement("div");
-    details.className = "bookmark-item-details";
-    details.hidden = true;
-
-    const googleLinks = Array.isArray(b.googleLinks)
-      ? b.googleLinks
-      : Array.isArray(b.pdfLinks)
-      ? b.pdfLinks
-      : [];
-    const googleStatus =
-      b.googleLinksStatus || b.pdfLinksStatus || "missing_settings";
-    let sourceSection = "";
-
-    if (googleStatus === "pending") {
-      sourceSection = `<div class="small-note">Finding source links...</div>`;
-    } else if (googleStatus === "missing_settings") {
-      sourceSection = `<div class="small-note">Add your Google API key + cx to find sources.</div>`;
-    } else if (googleStatus === "missing_query") {
-      sourceSection = `<div class="small-note">Missing title or author for source lookup.</div>`;
-    } else if (googleStatus && googleStatus !== "ok") {
-      sourceSection = `<div class="small-note">Could not load source links (${escapeHtml(
-        googleStatus
-      )}).</div>`;
-    }
-
-    const aiSummarySection = b.aiSummary
-      ? `<div class="chatty-summary">
-           <div class="chatty-header">
-             <span class="chatty-name">🤖 Chatty</span>
-           </div>
-           <div class="chatty-content" id="chatty-status-${b.id}" data-highlight-field="aiSummary">${renderHighlightedText(
-             b.aiSummary,
-             getBookmarkTextHighlights(b, "aiSummary")
-           )}</div>
-         </div>`
-      : "";
-
-    // Display AI-generated abstract or original abstract
-    let abstractSection = "";
-    if (b.aiAbstract && b.aiAbstractGenerated) {
-      // AI-generated abstract with warning
-      abstractSection = `<div class="chatty-summary">
-           <div class="chatty-header">
-             <span class="chatty-name">🤖 Abstraction</span>
-           </div>
-           <div class="chatty-content" id="chatty-status-${b.id}" data-highlight-field="abstract">${renderHighlightedText(
-             b.aiAbstract,
-             getBookmarkTextHighlights(b, "abstract")
-           )}</div>
-           <div class="chatty-warning">Generated with OpenAI, may be inaccurate</div>
-         </div>`;
-    } else if (hasValidAbstract(b.abstract)) {
-      // Original abstract
-      abstractSection = `<div class="chatty-summary">
-           <div class="chatty-header">
-             <span class="chatty-name">Abstraction</span>
-           </div>
-           <div class="chatty-content" data-highlight-field="abstract">${renderHighlightedText(
-             b.abstract,
-             getBookmarkTextHighlights(b, "abstract")
-           )}</div>
-         </div>`;
-    }
-
-    const detailHighlights = getBookmarkTextHighlights(b, "details");
-    const detailYearText = `${b.year || "Unknown"}${
-      b.publication_date ? ` (${b.publication_date})` : ""
-    }`;
-    const detailCitationsText =
-      b.cited_by_count != null ? `Citations: ${b.cited_by_count}` : "";
-    const detailDoiText = b.doi ? `DOI: ${b.doi}` : "";
-
-    details.innerHTML = `
-      <div class="bookmark-item-info">
-        <small data-highlight-field="details">${renderHighlightedText(
-          detailYearText,
-          detailHighlights
-        )}</small>
-        <small data-highlight-field="details">${renderHighlightedText(
-          b.authors || "",
-          detailHighlights
-        )}</small>
-        ${
-          detailCitationsText
-            ? `<small data-highlight-field="details">${renderHighlightedText(
-                detailCitationsText,
-                detailHighlights
-              )}</small>`
-            : ""
-        }
-        ${
-          detailDoiText
-            ? `<small data-highlight-field="details">${renderHighlightedText(
-                detailDoiText,
-                detailHighlights
-              )}</small>`
-            : ""
-        }
-      </div>
-      ${renderSourcePills(googleLinks)}
-      ${sourceSection}
-      ${aiSummarySection}
-      ${abstractSection}
-      <div class="project-assignment">
-        <label for="project-select-${b.id}">Assign to Project</label>
-        <select id="project-select-${b.id}">
-          <option value="">General (Unsorted)</option>
-        </select>
-      </div>
-      <div class="bookmark-note">
-        <label for="bookmark-note-${b.id}">Note</label>
-        <textarea id="bookmark-note-${b.id}" placeholder="Add a note..."></textarea>
-      </div>
-    `;
-
-    const noteInput = details.querySelector("textarea");
-    if (noteInput) {
-      noteInput.value = b.note || "";
-      noteInput.addEventListener("input", (event) => {
-        updateBookmarkNote(b.id, event.target.value);
-      });
-    }
-
-    // Setup project assignment dropdown
-    const projectSelectId = `project-select-${b.id}`;
-    const projectSelect = details.querySelector(
-      `#${CSS.escape(projectSelectId)}`
-    );
-    if (projectSelect) {
-      const projects = getProjects();
-      
-      // Find which project(s) contain this bookmark
-      let bookmarkProjectId = null;
-      for (const project of projects) {
-        if (project.paperIds.includes(b.id)) {
-          bookmarkProjectId = project.id;
-          break;
-        }
-      }
-      
-      // Populate dropdown with projects
-      projects.forEach(project => {
-        const option = document.createElement('option');
-        option.value = project.id;
-        option.textContent = project.name;
-        if (project.id === bookmarkProjectId) {
-          option.selected = true;
-        }
-        projectSelect.appendChild(option);
-      });
-      
-      // Handle project assignment changes
-      projectSelect.addEventListener('change', (event) => {
-        const newProjectId = event.target.value;
-        const oldProjectId = bookmarkProjectId;
-        
-        // Remove from old project if it was in one
-        if (oldProjectId) {
-          removePaperFromProject(oldProjectId, b.id);
-        }
-        
-        // Add to new project if one was selected
-        if (newProjectId) {
-          addPaperToProject(newProjectId, b.id);
-        }
-        
-        // Update the stored project ID
-        bookmarkProjectId = newProjectId || null;
-      });
-    }
-
-    toggleButton.onclick = () => {
-      // Collapse any currently expanded bookmark
-      if (currentExpandedBookmarkDetails && currentExpandedBookmarkDetails !== details) {
-        currentExpandedBookmarkDetails.hidden = true;
-        if (currentExpandedBookmarkButton) {
-          currentExpandedBookmarkButton.innerText = "Details";
-        }
-      }
-
-      // Toggle current card
-      details.hidden = !details.hidden;
-      toggleButton.innerText = details.hidden ? "Details" : "Hide";
-
-      // Update tracking
-      if (details.hidden) {
-        currentExpandedBookmarkDetails = null;
-        currentExpandedBookmarkButton = null;
-      } else {
-        currentExpandedBookmarkDetails = details;
-        currentExpandedBookmarkButton = toggleButton;
-      }
-    };
-
-    item.appendChild(header);
-    item.appendChild(meta);
-    item.appendChild(details);
-    item.appendChild(actions);
-    list.appendChild(item);
-  });
+  if (generalBookmarks.length === 0) {
+    const emptyGeneral = document.createElement("div");
+    emptyGeneral.className = "small-note";
+    emptyGeneral.innerText = bookmarkFilterTerm
+      ? "No general bookmarks match this filter."
+      : "No general bookmarks yet.";
+    list.appendChild(emptyGeneral);
+  } else {
+    generalBookmarks.forEach((b) => {
+      list.appendChild(createBookmarkListItem(b));
+    });
+  }
 }
 
 function exportBookmarks() {
