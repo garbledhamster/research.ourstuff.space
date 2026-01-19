@@ -1560,9 +1560,9 @@ async function toggleBookmark(entry, btn) {
     saveBookmarks(updated);
     renderBookmarkList();
 
-    // Auto-generate summary if enabled
+    // Auto-generate summary or abstraction if enabled
     const settings = getOpenAISettings();
-    if (settings.autogenerate && settings.apiKey) {
+    if (settings.apiKey && (settings.autogenerate || settings.generateAbstractions)) {
       generateResearchNote(entry.id);
     }
   }
