@@ -253,21 +253,19 @@ function getOpenAISettings() {
     temperature: parseFloat(localStorage.getItem("openaiTemperature") || "0.7"),
     maxTokens: parseInt(localStorage.getItem("openaiMaxTokens") || "300", 10),
     generateAbstractions: localStorage.getItem("openaiGenerateAbstractions") === "true",
-  };
-}
-
-function setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions) {
     defaultTemplate: localStorage.getItem("openaiDefaultTemplate") || DEFAULT_TEMPLATE,
     autogenerate: localStorage.getItem("openaiAutogenerate") === "true",
   };
 }
 
-function setOpenAISettings(apiKey, model, temperature, maxTokens, defaultTemplate, autogenerate) {
+function setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions, defaultTemplate, autogenerate) {
   localStorage.setItem("openaiApiKey", apiKey);
   localStorage.setItem("openaiModel", model);
   localStorage.setItem("openaiTemperature", String(temperature));
   localStorage.setItem("openaiMaxTokens", String(maxTokens));
-  localStorage.setItem("openaiGenerateAbstractions", String(generateAbstractions));
+  if (generateAbstractions !== undefined) {
+    localStorage.setItem("openaiGenerateAbstractions", String(generateAbstractions));
+  }
   if (defaultTemplate !== undefined) {
     localStorage.setItem("openaiDefaultTemplate", defaultTemplate);
   }
@@ -314,6 +312,8 @@ async function validateOpenAIKey() {
       document.getElementById("openaiMaxTokens").value = settings.maxTokens;
       document.getElementById("tokensValue").textContent = settings.maxTokens;
       document.getElementById("openaiGenerateAbstractions").checked = settings.generateAbstractions;
+      document.getElementById("openaiDefaultTemplate").value = settings.defaultTemplate;
+      document.getElementById("openaiAutogenerate").checked = settings.autogenerate;
     } else {
       const error = await response.json().catch(() => ({}));
       statusDiv.innerText = `Invalid API key: ${error.error?.message || response.statusText}`;
@@ -337,14 +337,11 @@ function saveOpenAISettings() {
     10
   );
   const generateAbstractions = document.getElementById("openaiGenerateAbstractions")?.checked || false;
-  const apiKey = getOpenAISettings().apiKey;
-
-  setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions);
   const defaultTemplate = document.getElementById("openaiDefaultTemplate")?.value || DEFAULT_TEMPLATE;
   const autogenerate = document.getElementById("openaiAutogenerate")?.checked || false;
   const apiKey = getOpenAISettings().apiKey;
 
-  setOpenAISettings(apiKey, model, temperature, maxTokens, defaultTemplate, autogenerate);
+  setOpenAISettings(apiKey, model, temperature, maxTokens, generateAbstractions, defaultTemplate, autogenerate);
 
   const statusDiv = document.getElementById("openaiValidationStatus");
   const originalText = statusDiv.innerText;
@@ -517,10 +514,6 @@ async function generateResearchNote(bookmarkId, templateId) {
     return;
   }
 
-  // Use provided templateId or fall back to default
-  const selectedTemplate = templateId || settings.defaultTemplate;
-  const template = AI_TEMPLATES[selectedTemplate] || AI_TEMPLATES[DEFAULT_TEMPLATE];
-
   const statusElement = document.getElementById(`chatty-status-${bookmarkId}`);
   if (statusElement) {
     statusElement.innerText = "Chatty is thinking...";
@@ -531,6 +524,7 @@ async function generateResearchNote(bookmarkId, templateId) {
   let isAbstraction = false;
   
   if (settings.generateAbstractions) {
+    // Generate or rewrite abstractions
     isAbstraction = true;
     const hasOriginalAbstract = hasValidAbstract(bookmark.abstract);
     
@@ -557,20 +551,11 @@ Year: ${bookmark.year || "Unknown"}
 Provide only the abstract, nothing else.`;
     }
   } else {
-    // Original research note behavior
-    prompt = `You are a research assistant. Analyze the following academic paper and provide a single well-written paragraph that explains:
-1. The abstraction or theoretical framework
-2. The key findings
-3. The conclusions
-
-Keep it concise and academic in tone.
-
-Title: ${bookmark.title}
-Authors: ${bookmark.authors || "Unknown"}
-Year: ${bookmark.year || "Unknown"}
-Abstract: ${bookmark.abstract || "No abstract available"}`;
+    // Use template for research notes
+    const selectedTemplate = templateId || settings.defaultTemplate;
+    const template = AI_TEMPLATES[selectedTemplate] || AI_TEMPLATES[DEFAULT_TEMPLATE];
+    prompt = template.prompt(bookmark);
   }
-  const prompt = template.prompt(bookmark);
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -1384,6 +1369,8 @@ function createSettingsDrawer() {
           </div>
           <div style="font-size: 0.75rem; color: var(--text-3); margin-top: -0.5rem; margin-left: 1.5rem;">
             When enabled, AI will write/rewrite abstractions instead of using the original. AI-generated abstractions will be marked with 🤖.
+          </div>
+
           <select id="openaiDefaultTemplate" title="Default Output Template">
             <option value="paragraph">Paragraph</option>
             <option value="highlights">Highlights</option>
