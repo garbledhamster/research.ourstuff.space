@@ -11,6 +11,12 @@ let bookmarkSortOrder = "recent_desc";
 // Current drawer view: "bookmarks" or "projects"
 let currentView = "bookmarks";
 
+// Track currently expanded card details
+let currentExpandedBookmarkDetails = null;
+let currentExpandedBookmarkButton = null;
+let currentExpandedProjectDetails = null;
+let currentExpandedProjectButton = null;
+
 // Resolved IDs (two-step lookup)
 let resolvedAuthorId = null;
 let resolvedAuthorLabel = "";
@@ -1176,6 +1182,10 @@ function renderProjectList() {
 
   list.innerHTML = "";
 
+  // Clear tracking variables when re-rendering
+  currentExpandedProjectDetails = null;
+  currentExpandedProjectButton = null;
+
   if (projects.length === 0) {
     const empty = document.createElement("div");
     empty.className = "small-note";
@@ -1265,8 +1275,26 @@ function renderProjectList() {
     }
 
     toggleButton.onclick = () => {
+      // Collapse any currently expanded project
+      if (currentExpandedProjectDetails && currentExpandedProjectDetails !== details) {
+        currentExpandedProjectDetails.hidden = true;
+        if (currentExpandedProjectButton) {
+          currentExpandedProjectButton.innerText = "Details";
+        }
+      }
+
+      // Toggle current card
       details.hidden = !details.hidden;
       toggleButton.innerText = details.hidden ? "Details" : "Hide";
+
+      // Update tracking
+      if (details.hidden) {
+        currentExpandedProjectDetails = null;
+        currentExpandedProjectButton = null;
+      } else {
+        currentExpandedProjectDetails = details;
+        currentExpandedProjectButton = toggleButton;
+      }
     };
 
     item.appendChild(header);
@@ -1284,6 +1312,10 @@ function renderBookmarkList() {
   const summary = document.getElementById("bookmarkSummary");
 
   list.innerHTML = "";
+
+  // Clear tracking variables when re-rendering
+  currentExpandedBookmarkDetails = null;
+  currentExpandedBookmarkButton = null;
 
   const filtered = filterBookmarks(allBookmarks);
   const bookmarks = sortBookmarks(filtered);
@@ -1421,8 +1453,26 @@ function renderBookmarkList() {
     }
 
     toggleButton.onclick = () => {
+      // Collapse any currently expanded bookmark
+      if (currentExpandedBookmarkDetails && currentExpandedBookmarkDetails !== details) {
+        currentExpandedBookmarkDetails.hidden = true;
+        if (currentExpandedBookmarkButton) {
+          currentExpandedBookmarkButton.innerText = "Details";
+        }
+      }
+
+      // Toggle current card
       details.hidden = !details.hidden;
       toggleButton.innerText = details.hidden ? "Details" : "Hide";
+
+      // Update tracking
+      if (details.hidden) {
+        currentExpandedBookmarkDetails = null;
+        currentExpandedBookmarkButton = null;
+      } else {
+        currentExpandedBookmarkDetails = details;
+        currentExpandedBookmarkButton = toggleButton;
+      }
     };
 
     item.appendChild(header);
