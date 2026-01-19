@@ -1587,22 +1587,22 @@ function showCreateProjectDialog() {
     form.reset();
   }
   
-  // Show modal
+  // Show modal using CSS class
   const modal = document.getElementById('modal-create-project');
   if (modal) {
-    modal.style.display = 'block';
-    // Focus on the name input
-    setTimeout(() => {
+    modal.classList.add('is-open');
+    // Focus on the name input after modal animation
+    requestAnimationFrame(() => {
       const nameInput = document.getElementById('project-name-input');
       if (nameInput) nameInput.focus();
-    }, 100);
+    });
   }
 }
 
 function closeProjectModal() {
   const modal = document.getElementById('modal-create-project');
   if (modal) {
-    modal.style.display = 'none';
+    modal.classList.remove('is-open');
   }
 }
 
@@ -1648,17 +1648,14 @@ function initializeProjectModal() {
         }
       };
     }
-  }
-  
-  // Close modal with Escape key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const modal = document.getElementById('modal-create-project');
-      if (modal && modal.style.display === 'block') {
+    
+    // Handle Escape key for this specific modal
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('is-open')) {
         closeProjectModal();
       }
-    }
-  });
+    });
+  }
 }
 
 function renderProjectList() {
