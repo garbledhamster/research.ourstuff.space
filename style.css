@@ -16,7 +16,7 @@ body {
   justify-content: space-between;
   padding: 0.75rem 1.5rem;
   background: var(--surface-1);
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid #475569;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   z-index: 900;
 }
@@ -75,7 +75,7 @@ body {
     right: 0;
     padding: 0.5rem;
     border-bottom: none;
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid #475569;
     box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
   }
 
@@ -557,7 +557,7 @@ body {
 .settings-section {
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid #475569;
 }
 
 .settings-section:last-child {
