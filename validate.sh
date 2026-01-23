@@ -61,7 +61,7 @@ print_status() {
 echo "1. Running Biome (JavaScript format + lint)..."
 # Note: Biome may show warnings for HTML-called functions (false positives)
 # Exit code 0 = no issues, 1 = warnings (acceptable), 2+ = errors
-if npx --yes @biomejs/biome@latest check --write script.js; then
+if npx --yes @biomejs/biome@latest check --write script.js firebase.js; then
     print_status 0
 else
     EXIT_CODE=$?
@@ -130,7 +130,24 @@ export default [
         requestAnimationFrame: "readonly",
         CSS: "readonly",
         setTimeout: "readonly",
-        clearTimeout: "readonly"
+        clearTimeout: "readonly",
+        firebase: "readonly",
+        crypto: "readonly",
+        btoa: "readonly",
+        atob: "readonly",
+        TextEncoder: "readonly",
+        TextDecoder: "readonly",
+        Uint8Array: "readonly",
+        getCurrentUser: "readonly",
+        bookmarkToArtifact: "readonly",
+        projectToArtifact: "readonly",
+        saveArtifactToFirestore: "readonly",
+        syncLocalDataToFirebase: "readonly",
+        loadDataFromFirebase: "readonly",
+        loadApiTokensFromFirebase: "readonly",
+        updateSettingsAccountSection: "readonly",
+        syncBookmarksToFirebase: "readonly",
+        syncProjectsToFirebase: "readonly"
       }
     },
     rules: {
@@ -141,7 +158,7 @@ export default [
 ];
 EOF
 
-if npx --yes eslint@latest --config /tmp/eslint.config.js script.js; then
+if npx --yes eslint@latest --config /tmp/eslint.config.js script.js firebase.js; then
     print_status 0
 else
     # ESLint warnings are acceptable (HTML-called functions appear unused)
