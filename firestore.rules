@@ -13,7 +13,7 @@ service cloud.firestore {
     }
 
     // Artifacts collection - users can only access their own artifacts
-    match /artificates/{artifactId} {
+    match /artifacts/{artifactId} {
       // Allow users to read their own artifacts
       allow read: if isSignedIn() && resource.data.owner == request.auth.uid;
 
