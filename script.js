@@ -56,12 +56,15 @@ function showBookmarkNotification(title = "Paper saved to your library") {
 		if (bookmarkNotificationTimeout) {
 			clearTimeout(bookmarkNotificationTimeout);
 		}
-		// Reset the animation by removing and re-adding the element
+		// Reset the animation using requestAnimationFrame to avoid layout thrashing
 		messageElement.textContent = title;
 		popup.classList.remove("hidden");
 		popup.style.animation = "none";
-		popup.offsetHeight; // Trigger reflow
-		popup.style.animation = "";
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				popup.style.animation = "";
+			});
+		});
 		
 		// Auto-hide after 3 seconds
 		bookmarkNotificationTimeout = setTimeout(() => {
