@@ -283,13 +283,13 @@ function filterBookmarks(bookmarks) {
 	});
 }
 
-function updateBookmarkNote(id, note) {
+function updateBookmarkNote(id, note, immediate = false) {
 	const bookmarks = getBookmarks().map((entry) =>
 		entry.id === id ? { ...entry, note } : entry,
 	);
 	saveBookmarks(bookmarks);
 	// Sync to Firebase if user is signed in
-	syncBookmarksToFirebase();
+	syncBookmarksToFirebase(immediate);
 }
 
 function removeBookmark(id) {
@@ -2480,14 +2480,29 @@ function createBookmarkListItem(b, options = {}) {
     <div class="bookmark-note">
       <label for="bookmark-note-${b.id}">Note</label>
       <textarea id="bookmark-note-${b.id}" placeholder="Add a note..."></textarea>
+      <button class="save-note-btn" data-bookmark-id="${b.id}">Save Note</button>
     </div>
   `;
 
 	const noteInput = details.querySelector("textarea");
 	if (noteInput) {
 		noteInput.value = b.note || "";
-		noteInput.addEventListener("input", (event) => {
-			updateBookmarkNote(b.id, event.target.value);
+	}
+
+	const saveNoteBtn = details.querySelector(
+		`[data-bookmark-id="${CSS.escape(b.id)}"]`,
+	);
+	if (saveNoteBtn && noteInput) {
+		saveNoteBtn.addEventListener("click", async (event) => {
+			event.stopPropagation();
+			updateBookmarkNote(b.id, noteInput.value, true); // true = immediate sync
+			// Visual feedback
+			saveNoteBtn.textContent = "Saved!";
+			saveNoteBtn.disabled = true;
+			setTimeout(() => {
+				saveNoteBtn.textContent = "Save Note";
+				saveNoteBtn.disabled = false;
+			}, 2000);
 		});
 	}
 
@@ -2899,17 +2914,12 @@ let bookmarkSyncDebounceTimer = null;
 let projectSyncDebounceTimer = null;
 
 // Sync bookmarks to Firebase (debounced to avoid too many writes)
-function syncBookmarksToFirebase() {
+function syncBookmarksToFirebase(immediate = false) {
 	if (!getCurrentUser()) {
 		return; // Not signed in
 	}
 
-	// Debounce sync calls
-	if (bookmarkSyncDebounceTimer) {
-		clearTimeout(bookmarkSyncDebounceTimer);
-	}
-
-	bookmarkSyncDebounceTimer = setTimeout(async () => {
+	const performSync = async () => {
 		const user = getCurrentUser();
 		if (!user) return;
 
@@ -2922,7 +2932,19 @@ function syncBookmarksToFirebase() {
 		} catch (error) {
 			console.error("Error syncing bookmarks to Firebase:", error);
 		}
-	}, 2000); // 2 second debounce
+	};
+
+	if (immediate) {
+		// Immediate sync for explicit save actions
+		performSync();
+	} else {
+		// Debounce sync calls
+		if (bookmarkSyncDebounceTimer) {
+			clearTimeout(bookmarkSyncDebounceTimer);
+		}
+
+		bookmarkSyncDebounceTimer = setTimeout(performSync, 2000); // 2 second debounce
+	}
 }
 
 // Sync projects to Firebase (debounced)
