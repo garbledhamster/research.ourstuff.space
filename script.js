@@ -115,7 +115,12 @@ function getBookmarks() {
 }
 
 function saveBookmarks(data) {
-	localStorage.setItem("researchBookmarks", JSON.stringify(data));
+	// Add updatedAt timestamp to each bookmark if not present
+	const timestampedData = data.map(bookmark => ({
+		...bookmark,
+		updatedAt: bookmark.updatedAt || Date.now()
+	}));
+	localStorage.setItem("researchBookmarks", JSON.stringify(timestampedData));
 }
 
 function getGoogleSettings() {
@@ -135,7 +140,12 @@ function getProjects() {
 }
 
 function saveProjects(data) {
-	localStorage.setItem("researchProjects", JSON.stringify(data));
+	// Add updatedAt timestamp to each project if not present
+	const timestampedData = data.map(project => ({
+		...project,
+		updatedAt: project.updatedAt || Date.now()
+	}));
+	localStorage.setItem("researchProjects", JSON.stringify(timestampedData));
 }
 
 function getActiveProjectId() {
@@ -171,7 +181,7 @@ function createProject(name, description = "", gptInstruction = "") {
 function updateProject(projectId, name, description, gptInstruction) {
 	const projects = getProjects().map((p) => {
 		if (p.id === projectId) {
-			return { ...p, name, description, gptInstruction };
+			return { ...p, name, description, gptInstruction, updatedAt: Date.now() };
 		}
 		return p;
 	});
@@ -196,7 +206,7 @@ function deleteProject(projectId) {
 function addPaperToProject(projectId, paperId) {
 	const projects = getProjects().map((p) => {
 		if (p.id === projectId && !p.paperIds.includes(paperId)) {
-			return { ...p, paperIds: [...p.paperIds, paperId] };
+			return { ...p, paperIds: [...p.paperIds, paperId], updatedAt: Date.now() };
 		}
 		return p;
 	});
@@ -209,7 +219,7 @@ function addPaperToProject(projectId, paperId) {
 function removePaperFromProject(projectId, paperId) {
 	const projects = getProjects().map((p) => {
 		if (p.id === projectId) {
-			return { ...p, paperIds: p.paperIds.filter((id) => id !== paperId) };
+			return { ...p, paperIds: p.paperIds.filter((id) => id !== paperId), updatedAt: Date.now() };
 		}
 		return p;
 	});
@@ -285,7 +295,7 @@ function filterBookmarks(bookmarks) {
 
 function updateBookmarkNote(id, note) {
 	const bookmarks = getBookmarks().map((entry) =>
-		entry.id === id ? { ...entry, note } : entry,
+		entry.id === id ? { ...entry, note, updatedAt: Date.now() } : entry,
 	);
 	saveBookmarks(bookmarks);
 	// Sync to Firebase if user is signed in
@@ -769,9 +779,9 @@ Provide only the abstract, nothing else.`;
 		const updatedBookmarks = bookmarks.map((b) => {
 			if (b.id === bookmarkId) {
 				if (isAbstraction) {
-					return { ...b, aiAbstract: aiContent, aiAbstractGenerated: true };
+					return { ...b, aiAbstract: aiContent, aiAbstractGenerated: true, updatedAt: Date.now() };
 				} else {
-					return { ...b, aiSummary: aiContent };
+					return { ...b, aiSummary: aiContent, updatedAt: Date.now() };
 				}
 			}
 			return b;
@@ -1481,6 +1491,7 @@ async function refreshBookmarkLinks(bookmarkId) {
 					...b,
 					googleLinks: links,
 					googleLinksStatus: status,
+					updatedAt: Date.now(),
 				}
 			: b,
 	);
