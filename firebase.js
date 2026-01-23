@@ -21,7 +21,7 @@ let db = null;
 let currentUser = null;
 
 // Collection names
-const ARTIFICATES_COLLECTION = "artifacts";
+const ARTIFACTS_COLLECTION = "artifacts";
 const USER_PRIVATE_COLLECTION = "userPrivate";
 
 // Encryption key cache (derived from user credentials)
@@ -695,7 +695,7 @@ async function saveArtifactToFirestore(artifact) {
 	}
 
 	try {
-		await db.collection(ARTIFICATES_COLLECTION).doc(artifact.id).set(artifact);
+		await db.collection(ARTIFACTS_COLLECTION).doc(artifact.id).set(artifact);
 		return { success: true, id: artifact.id };
 	} catch (error) {
 		console.error("Error saving artifact:", error);
@@ -715,7 +715,7 @@ async function getUserArtifacts(userId) {
 
 	try {
 		const snapshot = await db
-			.collection(ARTIFICATES_COLLECTION)
+			.collection(ARTIFACTS_COLLECTION)
 			.where("owner", "==", userId)
 			.get();
 
@@ -738,7 +738,7 @@ async function deleteArtifact(artifactId) {
 	}
 
 	try {
-		await db.collection(ARTIFICATES_COLLECTION).doc(artifactId).delete();
+		await db.collection(ARTIFACTS_COLLECTION).doc(artifactId).delete();
 		return { success: true };
 	} catch (error) {
 		console.error("Error deleting artifact:", error);
@@ -1127,7 +1127,7 @@ function startRealtimeSync(userId) {
 
 	// Listen for real-time updates
 	unsubscribeArtifacts = db
-		.collection(ARTIFICATES_COLLECTION)
+		.collection(ARTIFACTS_COLLECTION)
 		.where("owner", "==", userId)
 		.onSnapshot(
 			(snapshot) => {
