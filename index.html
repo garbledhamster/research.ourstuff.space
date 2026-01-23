@@ -33,6 +33,12 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- Micromodal.js -->
+  <script src="https://cdn.jsdelivr.net/npm/micromodal@0.4.10/dist/micromodal.min.js"></script>
+
+  <!-- reCAPTCHA v3 -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6LdVslAsAAAAAAwyU1wyjAxIG_K187E82ID2C7Re"></script>
 </head>
 
 <body>
@@ -58,7 +64,7 @@
         </svg>
         <span class="navbar-button-text">Settings</span>
       </button>
-      <button type="button" id="authButton" class="navbar-button auth-button" onclick="handleSignIn()" title="Sign in with Google">
+      <button type="button" id="authButton" class="navbar-button auth-button" onclick="handleSignIn()" title="Sign in">
         <img id="userAvatar" class="user-avatar" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="User avatar" style="display: none;">
         <svg id="authIcon" class="navbar-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -188,6 +194,45 @@
           <div class="modal__footer">
             <button type="button" class="modal__btn modal__btn-secondary" onclick="closeEditProjectModal()">Cancel</button>
             <button type="submit" id="edit-project-submit" class="modal__btn modal__btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign In Modal -->
+  <div id="modal-signin" class="modal micromodal-slide" aria-hidden="true">
+    <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+      <div class="modal__container" role="dialog" aria-modal="true" aria-labelledby="modal-signin-title">
+        <div class="modal__header">
+          <h2 id="modal-signin-title" class="modal__title">Sign In</h2>
+          <button type="button" class="modal__close" aria-label="Close" data-micromodal-close></button>
+        </div>
+        <form id="signin-form">
+          <div class="modal__content">
+            <div id="signin-error" class="signin-error" style="display: none;"></div>
+
+            <div class="form-group">
+              <label for="signin-email">Email</label>
+              <input id="signin-email" type="email" autocomplete="email" required placeholder="your.email@example.com">
+            </div>
+
+            <div class="form-group">
+              <label for="signin-password">Password</label>
+              <input id="signin-password" type="password" autocomplete="current-password" required placeholder="Enter your password">
+            </div>
+
+            <div class="signin-toggle">
+              <span>Don't have an account? </span>
+              <button type="button" class="signin-toggle-btn" onclick="toggleSignupMode()">Sign up</button>
+            </div>
+          </div>
+          <div class="modal__footer">
+            <button type="button" class="modal__btn modal__btn-secondary" data-micromodal-close>Cancel</button>
+            <button type="submit" id="signin-submit" class="modal__btn modal__btn-primary">
+              <span id="signin-submit-text">Sign In</span>
+              <span id="signin-submit-loader" class="signin-loader" style="display: none;">...</span>
+            </button>
           </div>
         </form>
       </div>
