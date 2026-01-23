@@ -1092,7 +1092,6 @@ function stopRealtimeSync() {
 
 // Make functions globally available
 window.initializeFirebase = initializeFirebase;
-window.signInWithGoogle = signInWithGoogle;
 window.signOut = signOut;
 window.getCurrentUser = getCurrentUser;
 window.isUserSignedIn = isUserSignedIn;
