@@ -2937,8 +2937,36 @@ function syncBookmarksToFirebase(immediate = false) {
 		try {
 			const bookmarks = getBookmarks();
 			for (const bookmark of bookmarks) {
-				const artifact = bookmarkToArtifact(bookmark, user.uid);
-				await saveArtifactToFirestore(artifact);
+				// Check if artifact already exists for this bookmark
+				const existingArtifact = await findArtifactByOriginalId(
+					user.uid,
+					bookmark.id,
+					"bookmark"
+				);
+
+				let artifact;
+				if (existingArtifact) {
+					// Compare timestamps to decide if we should update
+					const localTime = new Date(
+						bookmark.updatedAt || bookmark.createdAt || 0
+					).getTime();
+					const remoteTime = new Date(
+						existingArtifact.updatedAt || existingArtifact.createdAt || 0
+					).getTime();
+
+					// Only update if local version is newer or equal
+					if (localTime >= remoteTime) {
+						// Reuse existing artifact ID to avoid duplicates
+						artifact = bookmarkToArtifact(bookmark, user.uid);
+						artifact.id = existingArtifact.id; // Reuse existing ID
+						await saveArtifactToFirestore(artifact);
+					}
+					// If remote is newer, skip - real-time sync will handle it
+				} else {
+					// No existing artifact, create new one
+					artifact = bookmarkToArtifact(bookmark, user.uid);
+					await saveArtifactToFirestore(artifact);
+				}
 			}
 		} catch (error) {
 			console.error("Error syncing bookmarks to Firebase:", error);
@@ -2976,8 +3004,36 @@ function syncProjectsToFirebase() {
 		try {
 			const projects = getProjects();
 			for (const project of projects) {
-				const artifact = projectToArtifact(project, user.uid);
-				await saveArtifactToFirestore(artifact);
+				// Check if artifact already exists for this project
+				const existingArtifact = await findArtifactByOriginalId(
+					user.uid,
+					project.id,
+					"project"
+				);
+
+				let artifact;
+				if (existingArtifact) {
+					// Compare timestamps to decide if we should update
+					const localTime = new Date(
+						project.updatedAt || project.createdAt || 0
+					).getTime();
+					const remoteTime = new Date(
+						existingArtifact.updatedAt || existingArtifact.createdAt || 0
+					).getTime();
+
+					// Only update if local version is newer or equal
+					if (localTime >= remoteTime) {
+						// Reuse existing artifact ID to avoid duplicates
+						artifact = projectToArtifact(project, user.uid);
+						artifact.id = existingArtifact.id; // Reuse existing ID
+						await saveArtifactToFirestore(artifact);
+					}
+					// If remote is newer, skip - real-time sync will handle it
+				} else {
+					// No existing artifact, create new one
+					artifact = projectToArtifact(project, user.uid);
+					await saveArtifactToFirestore(artifact);
+				}
 			}
 		} catch (error) {
 			console.error("Error syncing projects to Firebase:", error);

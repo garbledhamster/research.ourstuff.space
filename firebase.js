@@ -758,6 +758,96 @@ async function deleteArtifact(artifactId) {
 	}
 }
 
+// Find existing artifact by originalId and type
+async function findArtifactByOriginalId(userId, originalId, type) {
+	if (!db || !userId || !originalId) {
+		return null;
+	}
+
+	try {
+		const snapshot = await db
+			.collection(ARTIFACTS_COLLECTION)
+			.where("owner", "==", userId)
+			.where("type", "==", type)
+			.get();
+
+		// Find artifact with matching originalId in meta
+		let matchingArtifact = null;
+		snapshot.forEach((doc) => {
+			const artifact = doc.data();
+			const artifactOriginalId = artifact.data?.core?.meta?.originalId;
+			if (artifactOriginalId === originalId) {
+				matchingArtifact = artifact;
+			}
+		});
+
+		return matchingArtifact;
+	} catch (error) {
+		console.error("Error finding artifact by originalId:", error);
+		return null;
+	}
+}
+
+// Clean up duplicate artifacts (keeps newest version based on updatedAt)
+async function cleanupDuplicateArtifacts(userId) {
+	if (!db || !userId) {
+		console.error("Cannot cleanup: not authenticated");
+		return { success: false, error: "Not authenticated" };
+	}
+
+	try {
+		const snapshot = await db
+			.collection(ARTIFACTS_COLLECTION)
+			.where("owner", "==", userId)
+			.get();
+
+		// Group artifacts by originalId
+		const artifactsByOriginalId = new Map();
+		snapshot.forEach((doc) => {
+			const artifact = doc.data();
+			const originalId = artifact.data?.core?.meta?.originalId;
+			if (originalId) {
+				if (!artifactsByOriginalId.has(originalId)) {
+					artifactsByOriginalId.set(originalId, []);
+				}
+				artifactsByOriginalId.get(originalId).push(artifact);
+			}
+		});
+
+		// Find and delete duplicates
+		let deletedCount = 0;
+		for (const [originalId, artifacts] of artifactsByOriginalId) {
+			if (artifacts.length > 1) {
+				// Sort by updatedAt (newest first)
+				artifacts.sort((a, b) => {
+					const timeA = new Date(a.updatedAt || a.createdAt).getTime();
+					const timeB = new Date(b.updatedAt || b.createdAt).getTime();
+					return timeB - timeA;
+				});
+
+				// Keep the newest, delete the rest
+				const toKeep = artifacts[0];
+				const toDelete = artifacts.slice(1);
+
+				console.log(
+					`Found ${artifacts.length} duplicates for originalId ${originalId}, keeping newest (${toKeep.id})`
+				);
+
+				for (const artifact of toDelete) {
+					await db.collection(ARTIFACTS_COLLECTION).doc(artifact.id).delete();
+					deletedCount++;
+					console.log(`Deleted duplicate artifact ${artifact.id}`);
+				}
+			}
+		}
+
+		return { success: true, deletedCount };
+	} catch (error) {
+		console.error("Error cleaning up duplicates:", error);
+		return { success: false, error: error.message, deletedCount: 0 };
+	}
+}
+
 // ========== User Private (Encrypted) Operations ==========
 
 // Save encrypted user settings (API tokens) to userPrivate collection
@@ -1023,6 +1113,13 @@ async function checkAndSyncLocalData(user) {
 	// Also sync any local API tokens to Firebase (encrypted)
 	await syncApiTokensToFirebase(user.uid);
 
+	// Clean up any duplicate artifacts
+	console.log("Cleaning up duplicate artifacts...");
+	const cleanupResult = await cleanupDuplicateArtifacts(user.uid);
+	if (cleanupResult.success && cleanupResult.deletedCount > 0) {
+		console.log(`Cleaned up ${cleanupResult.deletedCount} duplicate artifacts`);
+	}
+
 	// Load data from Firebase (including encrypted API tokens)
 	await loadDataFromFirebase(user.uid);
 	await loadApiTokensFromFirebase(user.uid);
@@ -1081,61 +1178,133 @@ async function syncLocalDataToFirebase(userId) {
 			: [];
 
 		// Create a map of existing artifacts by original ID for merging
-		const existingBookmarkIds = new Set();
-		const existingProjectIds = new Set();
+		const existingBookmarksMap = new Map();
+		const existingProjectsMap = new Map();
 
 		existingArtifacts.forEach((artifact) => {
 			const originalId = artifact.data?.core?.meta?.originalId;
 			if (originalId) {
 				if (artifact.type === "bookmark") {
-					existingBookmarkIds.add(originalId);
+					existingBookmarksMap.set(originalId, artifact);
 				} else if (artifact.type === "project") {
-					existingProjectIds.add(originalId);
+					existingProjectsMap.set(originalId, artifact);
 				}
 			}
 		});
 
-		// Sync bookmarks that don't already exist
+		// Sync bookmarks (create new or update existing if local is newer)
 		let syncedBookmarks = 0;
 		const bookmarkErrors = [];
 		for (const bookmark of localBookmarks) {
-			if (!existingBookmarkIds.has(bookmark.id)) {
-				const artifact = bookmarkToArtifact(bookmark, userId);
-				const result = await saveArtifactToFirestore(artifact);
-				if (result.success) {
-					syncedBookmarks++;
+			try {
+				const existingArtifact = existingBookmarksMap.get(bookmark.id);
+				let artifact;
+
+				if (existingArtifact) {
+					// Compare timestamps
+					const localTime = new Date(
+						bookmark.updatedAt || bookmark.createdAt || 0,
+					).getTime();
+					const remoteTime = new Date(
+						existingArtifact.updatedAt || existingArtifact.createdAt || 0,
+					).getTime();
+
+					// Only update if local is newer or equal
+					if (localTime >= remoteTime) {
+						artifact = bookmarkToArtifact(bookmark, userId);
+						artifact.id = existingArtifact.id; // Reuse existing ID
+						const result = await saveArtifactToFirestore(artifact);
+						if (result.success) {
+							syncedBookmarks++;
+						} else {
+							bookmarkErrors.push({
+								title: bookmark.title || "Untitled",
+								error: result.error,
+							});
+						}
+					}
+					// If remote is newer, skip - real-time sync will handle it
 				} else {
-					bookmarkErrors.push({
-						title: bookmark.title || "Untitled",
-						error: result.error,
-					});
-					console.error(
-						`Failed to sync bookmark "${bookmark.title}":`,
-						result.error,
-					);
+					// New bookmark - create it
+					artifact = bookmarkToArtifact(bookmark, userId);
+					const result = await saveArtifactToFirestore(artifact);
+					if (result.success) {
+						syncedBookmarks++;
+					} else {
+						bookmarkErrors.push({
+							title: bookmark.title || "Untitled",
+							error: result.error,
+						});
+						console.error(
+							`Failed to sync bookmark "${bookmark.title}":`,
+							result.error,
+						);
+					}
 				}
+			} catch (error) {
+				bookmarkErrors.push({
+					title: bookmark.title || "Untitled",
+					error: error.message,
+				});
+				console.error(`Failed to sync bookmark "${bookmark.title}":`, error);
 			}
 		}
 
-		// Sync projects that don't already exist
+		// Sync projects (create new or update existing if local is newer)
 		let syncedProjects = 0;
 		const projectErrors = [];
 		for (const project of localProjects) {
-			if (!existingProjectIds.has(project.id)) {
-				const artifact = projectToArtifact(project, userId);
-				const result = await saveArtifactToFirestore(artifact);
-				if (result.success) {
-					syncedProjects++;
+			try {
+				const existingArtifact = existingProjectsMap.get(project.id);
+				let artifact;
+
+				if (existingArtifact) {
+					// Compare timestamps
+					const localTime = new Date(
+						project.updatedAt || project.createdAt || 0,
+					).getTime();
+					const remoteTime = new Date(
+						existingArtifact.updatedAt || existingArtifact.createdAt || 0,
+					).getTime();
+
+					// Only update if local is newer or equal
+					if (localTime >= remoteTime) {
+						artifact = projectToArtifact(project, userId);
+						artifact.id = existingArtifact.id; // Reuse existing ID
+						const result = await saveArtifactToFirestore(artifact);
+						if (result.success) {
+							syncedProjects++;
+						} else {
+							projectErrors.push({
+								name: project.name || "Untitled",
+								error: result.error,
+							});
+						}
+					}
+					// If remote is newer, skip - real-time sync will handle it
 				} else {
-					projectErrors.push({
-						name: project.name || "Untitled",
-						error: result.error,
-					});
-					console.error(
-						`Failed to sync project "${project.name}":`,
-						result.error,
-					);
+					// New project - create it
+					artifact = projectToArtifact(project, userId);
+					const result = await saveArtifactToFirestore(artifact);
+					if (result.success) {
+						syncedProjects++;
+					} else {
+						projectErrors.push({
+							name: project.name || "Untitled",
+							error: result.error,
+						});
+						console.error(
+							`Failed to sync project "${project.name}":`,
+							result.error,
+						);
+					}
 				}
+			} catch (error) {
+				projectErrors.push({
+					name: project.name || "Untitled",
+					error: error.message,
+				});
+				console.error(`Failed to sync project "${project.name}":`, error);
 			}
 		}
 
