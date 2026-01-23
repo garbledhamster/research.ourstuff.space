@@ -45,6 +45,34 @@ function hideAIGenerationPopup() {
 	}
 }
 
+// Bookmark Notification Functions
+let bookmarkNotificationTimeout = null;
+
+function showBookmarkNotification(title = "Paper saved to your library") {
+	const popup = document.getElementById("bookmark-notification");
+	const messageElement = document.getElementById("bookmark-notification-message");
+	if (popup && messageElement) {
+		// Clear any existing timeout
+		if (bookmarkNotificationTimeout) {
+			clearTimeout(bookmarkNotificationTimeout);
+		}
+		// Reset the animation using requestAnimationFrame to avoid layout thrashing
+		messageElement.textContent = title;
+		popup.classList.remove("hidden");
+		popup.style.animation = "none";
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				popup.style.animation = "";
+			});
+		});
+		
+		// Auto-hide after 3 seconds
+		bookmarkNotificationTimeout = setTimeout(() => {
+			popup.classList.add("hidden");
+		}, 3000);
+	}
+}
+
 function getBookmarkToggleIcons() {
 	return {
 		collapsed: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
@@ -1391,6 +1419,8 @@ async function toggleBookmark(entry, btn) {
 		bookmarks.push(pendingEntry);
 		btn.style.color = "var(--accent-bookmarked)";
 		btn.style.opacity = "1";
+		// Show notification when bookmark is added
+		showBookmarkNotification(entry.title || "Paper saved to your library");
 	}
 
 	saveBookmarks(bookmarks);
