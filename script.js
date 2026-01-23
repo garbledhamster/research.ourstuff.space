@@ -135,6 +135,8 @@ function createProject(name, description = "", gptInstruction = "") {
 	};
 	projects.push(newProject);
 	saveProjects(projects);
+	// Sync to Firebase if user is signed in
+	syncProjectsToFirebase();
 	return newProject;
 }
 
@@ -146,6 +148,8 @@ function updateProject(projectId, name, description, gptInstruction) {
 		return p;
 	});
 	saveProjects(projects);
+	// Sync to Firebase if user is signed in
+	syncProjectsToFirebase();
 	renderCurrentView();
 }
 
@@ -156,6 +160,8 @@ function deleteProject(projectId) {
 	if (activeProjectId === projectId) {
 		setActiveProjectId(null);
 	}
+	// Sync to Firebase if user is signed in
+	syncProjectsToFirebase();
 	renderCurrentView();
 }
 
@@ -167,6 +173,8 @@ function addPaperToProject(projectId, paperId) {
 		return p;
 	});
 	saveProjects(projects);
+	// Sync to Firebase if user is signed in
+	syncProjectsToFirebase();
 	renderCurrentView();
 }
 
@@ -178,6 +186,8 @@ function removePaperFromProject(projectId, paperId) {
 		return p;
 	});
 	saveProjects(projects);
+	// Sync to Firebase if user is signed in
+	syncProjectsToFirebase();
 	renderCurrentView();
 }
 
@@ -250,11 +260,15 @@ function updateBookmarkNote(id, note) {
 		entry.id === id ? { ...entry, note } : entry,
 	);
 	saveBookmarks(bookmarks);
+	// Sync to Firebase if user is signed in
+	syncBookmarksToFirebase();
 }
 
 function removeBookmark(id) {
 	const bookmarks = getBookmarks().filter((entry) => entry.id !== id);
 	saveBookmarks(bookmarks);
+	// Sync to Firebase if user is signed in
+	syncBookmarksToFirebase();
 	renderBookmarkList();
 }
 
@@ -1382,6 +1396,9 @@ async function toggleBookmark(entry, btn) {
 	saveBookmarks(bookmarks);
 	renderBookmarkList();
 
+	// Sync to Firebase if user is signed in
+	syncBookmarksToFirebase();
+
 	if (!exists) {
 		const { links, status } = await fetchGoogleSourceLinks(entry);
 		const updated = getBookmarks().map((b) =>
@@ -1395,6 +1412,9 @@ async function toggleBookmark(entry, btn) {
 		);
 		saveBookmarks(updated);
 		renderBookmarkList();
+
+		// Sync updated bookmark to Firebase
+		syncBookmarksToFirebase();
 
 		// Auto-generate summary or abstraction if enabled
 		const settings = getOpenAISettings();
@@ -1525,6 +1545,43 @@ function createSettingsDrawer() {
     <div class="drawer-header">
       <button type="button" class="drawer-icon-button" onclick="closeSettingsDrawer()">✕</button>
       <h2>Settings</h2>
+    </div>
+
+    <div class="settings-section" id="accountSection">
+      <div class="settings-section-title">Account & Sync</div>
+      <div id="accountContent">
+        <div id="signedOutContent">
+          <p style="font-size: 13px; margin-bottom: 12px;">Sign in to sync your bookmarks and projects across devices.</p>
+          <button type="button" onclick="handleSignIn()" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Sign in with Google
+          </button>
+        </div>
+        <div id="signedInContent" style="display: none;">
+          <div class="account-info">
+            <img id="settingsUserAvatar" class="account-avatar" src="" alt="">
+            <div class="account-details">
+              <div id="settingsUserName" class="account-name"></div>
+              <div id="settingsUserEmail" class="account-email"></div>
+            </div>
+          </div>
+          <div class="account-actions">
+            <button type="button" onclick="manualSyncToFirebase()" title="Sync local data to cloud">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
+              </svg>
+              Sync Now
+            </button>
+            <button type="button" onclick="handleSignOut()" class="modal__btn-secondary">Sign Out</button>
+          </div>
+        </div>
+      </div>
+      <div id="syncStatusSettings" class="settings-note" style="margin-top: 8px;"></div>
     </div>
 
     <div class="settings-section">
@@ -2731,6 +2788,75 @@ function initializeSettings() {
 				openaiSettings.autogenerate;
 		}
 	}
+
+	// Update account section in settings
+	updateSettingsAccountSection();
+}
+
+// Update the account section in settings drawer based on auth state
+function updateSettingsAccountSection() {
+	const signedOutContent = document.getElementById("signedOutContent");
+	const signedInContent = document.getElementById("signedInContent");
+	const settingsUserAvatar = document.getElementById("settingsUserAvatar");
+	const settingsUserName = document.getElementById("settingsUserName");
+	const settingsUserEmail = document.getElementById("settingsUserEmail");
+
+	if (!signedOutContent || !signedInContent) return;
+
+	const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
+
+	if (user) {
+		signedOutContent.style.display = "none";
+		signedInContent.style.display = "block";
+
+		if (settingsUserAvatar) {
+			settingsUserAvatar.src = user.photoURL || "assets/logo-circle.svg";
+		}
+		if (settingsUserName) {
+			settingsUserName.textContent = user.displayName || "User";
+		}
+		if (settingsUserEmail) {
+			settingsUserEmail.textContent = user.email || "";
+		}
+	} else {
+		signedOutContent.style.display = "block";
+		signedInContent.style.display = "none";
+	}
+}
+
+// Manual sync function for the settings button
+async function manualSyncToFirebase() {
+	const user = getCurrentUser();
+	if (!user) {
+		alert("Please sign in to sync your data.");
+		return;
+	}
+
+	const statusEl = document.getElementById("syncStatusSettings");
+	if (statusEl) {
+		statusEl.textContent = "Syncing...";
+	}
+
+	try {
+		const result = await syncLocalDataToFirebase(user.uid);
+		if (result.success) {
+			if (statusEl) {
+				statusEl.textContent = `Synced ${result.syncedBookmarks} bookmark(s) and ${result.syncedProjects} project(s)`;
+			}
+			// Reload data from Firebase to get merged results
+			await loadDataFromFirebase(user.uid);
+			// Also reload API tokens
+			await loadApiTokensFromFirebase(user.uid);
+		} else {
+			if (statusEl) {
+				statusEl.textContent = `Sync failed: ${result.error}`;
+			}
+		}
+	} catch (error) {
+		if (statusEl) {
+			statusEl.textContent = `Sync error: ${error.message}`;
+		}
+	}
 }
 
 // Settings are initialized when the settings drawer is created
@@ -2740,4 +2866,64 @@ if (document.readyState === "loading") {
 	document.addEventListener("DOMContentLoaded", initializeProjectModal);
 } else {
 	initializeProjectModal();
+}
+
+// ========== Firebase Sync Helpers ==========
+
+// Separate debounce timers for bookmarks and projects
+let bookmarkSyncDebounceTimer = null;
+let projectSyncDebounceTimer = null;
+
+// Sync bookmarks to Firebase (debounced to avoid too many writes)
+function syncBookmarksToFirebase() {
+	if (!getCurrentUser()) {
+		return; // Not signed in
+	}
+
+	// Debounce sync calls
+	if (bookmarkSyncDebounceTimer) {
+		clearTimeout(bookmarkSyncDebounceTimer);
+	}
+
+	bookmarkSyncDebounceTimer = setTimeout(async () => {
+		const user = getCurrentUser();
+		if (!user) return;
+
+		try {
+			const bookmarks = getBookmarks();
+			for (const bookmark of bookmarks) {
+				const artifact = bookmarkToArtifact(bookmark, user.uid);
+				await saveArtifactToFirestore(artifact);
+			}
+		} catch (error) {
+			console.error("Error syncing bookmarks to Firebase:", error);
+		}
+	}, 2000); // 2 second debounce
+}
+
+// Sync projects to Firebase (debounced)
+function syncProjectsToFirebase() {
+	if (!getCurrentUser()) {
+		return; // Not signed in
+	}
+
+	// Debounce sync calls
+	if (projectSyncDebounceTimer) {
+		clearTimeout(projectSyncDebounceTimer);
+	}
+
+	projectSyncDebounceTimer = setTimeout(async () => {
+		const user = getCurrentUser();
+		if (!user) return;
+
+		try {
+			const projects = getProjects();
+			for (const project of projects) {
+				const artifact = projectToArtifact(project, user.uid);
+				await saveArtifactToFirestore(artifact);
+			}
+		} catch (error) {
+			console.error("Error syncing projects to Firebase:", error);
+		}
+	}, 2000); // 2 second debounce
 }

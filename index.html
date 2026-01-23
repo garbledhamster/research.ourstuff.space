@@ -28,6 +28,11 @@
   >
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="assets/site.css">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
@@ -52,6 +57,14 @@
           <path d="M19.07 4.93l-4.24 4.24m0 5.66l4.24 4.24M4.93 4.93l4.24 4.24m0 5.66l-4.24 4.24"></path>
         </svg>
         <span class="navbar-button-text">Settings</span>
+      </button>
+      <button type="button" id="authButton" class="navbar-button auth-button" onclick="handleSignIn()" title="Sign in with Google">
+        <img id="userAvatar" class="user-avatar" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="User avatar" style="display: none;">
+        <svg id="authIcon" class="navbar-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span id="authButtonText" class="navbar-button-text">Sign In</span>
       </button>
     </div>
   </nav>
@@ -198,6 +211,10 @@
     </div>
   </div>
 
+  <!-- Sync Status Notification -->
+  <div id="syncStatus" class="sync-status" style="display: none;" role="status" aria-live="polite"></div>
+
+  <script src="firebase.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
