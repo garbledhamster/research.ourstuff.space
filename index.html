@@ -82,8 +82,12 @@
       <div class="search-panel">
         <input
           id="query"
-          type="text"
+          type="search"
           placeholder="Search Plato, Ackoff, DIKW..."
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
           onkeydown="if(event.key==='Enter') search()"
         >
 
