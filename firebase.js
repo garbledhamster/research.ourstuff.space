@@ -21,7 +21,7 @@ let db = null;
 let currentUser = null;
 
 // Collection names
-const ARTIFICATES_COLLECTION = "artificates";
+const ARTIFICATES_COLLECTION = "artifacts";
 const USER_PRIVATE_COLLECTION = "userPrivate";
 
 // Encryption key cache (derived from user credentials)
