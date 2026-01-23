@@ -189,22 +189,88 @@ function isUserSignedIn() {
 	return currentUser !== null;
 }
 
-async function signInWithGoogle() {
+// Sign in with email and password
+async function signInWithEmail(email, password, recaptchaToken) {
 	try {
 		if (!auth) {
 			await initializeFirebase();
 		}
 
-		const provider = new firebase.auth.GoogleAuthProvider();
+		// Verify reCAPTCHA token on the client side
+		if (!recaptchaToken) {
+			throw new Error("reCAPTCHA verification failed. Please try again.");
+		}
 
-		// Enable reCAPTCHA verification for additional security
-		auth.settings.appVerificationDisabledForTesting = false;
-
-		const result = await auth.signInWithPopup(provider);
+		const result = await auth.signInWithEmailAndPassword(email, password);
 		return { success: true, user: result.user };
 	} catch (error) {
 		console.error("Sign in error:", error);
-		return { success: false, error: error.message };
+		let errorMessage = "Sign in failed. Please try again.";
+
+		// Provide user-friendly error messages
+		switch (error.code) {
+			case "auth/user-not-found":
+				errorMessage = "No account found with this email. Please sign up.";
+				break;
+			case "auth/wrong-password":
+				errorMessage = "Incorrect password. Please try again.";
+				break;
+			case "auth/invalid-email":
+				errorMessage = "Invalid email address.";
+				break;
+			case "auth/user-disabled":
+				errorMessage = "This account has been disabled.";
+				break;
+			case "auth/too-many-requests":
+				errorMessage = "Too many failed attempts. Please try again later.";
+				break;
+			default:
+				errorMessage = error.message;
+		}
+
+		return { success: false, error: errorMessage };
+	}
+}
+
+// Sign up with email and password
+async function signUpWithEmail(email, password, recaptchaToken) {
+	try {
+		if (!auth) {
+			await initializeFirebase();
+		}
+
+		// Verify reCAPTCHA token on the client side
+		if (!recaptchaToken) {
+			throw new Error("reCAPTCHA verification failed. Please try again.");
+		}
+
+		// Validate password strength
+		if (password.length < 6) {
+			throw new Error("Password must be at least 6 characters long.");
+		}
+
+		const result = await auth.createUserWithEmailAndPassword(email, password);
+		return { success: true, user: result.user };
+	} catch (error) {
+		console.error("Sign up error:", error);
+		let errorMessage = "Sign up failed. Please try again.";
+
+		// Provide user-friendly error messages
+		switch (error.code) {
+			case "auth/email-already-in-use":
+				errorMessage = "An account already exists with this email. Please sign in.";
+				break;
+			case "auth/invalid-email":
+				errorMessage = "Invalid email address.";
+				break;
+			case "auth/weak-password":
+				errorMessage = "Password is too weak. Please use a stronger password.";
+				break;
+			default:
+				errorMessage = error.message;
+		}
+
+		return { success: false, error: errorMessage };
 	}
 }
 
@@ -249,7 +315,7 @@ function updateAuthUI() {
 			authButtonText.textContent = "Sign In";
 		}
 		authButton.onclick = handleSignIn;
-		authButton.title = "Sign in with Google";
+		authButton.title = "Sign in";
 	}
 
 	// Also update settings drawer account section if it exists
@@ -258,10 +324,10 @@ function updateAuthUI() {
 	}
 }
 
-async function handleSignIn() {
-	const result = await signInWithGoogle();
-	if (!result.success) {
-		alert("Sign in failed: " + result.error);
+function handleSignIn() {
+	// Open the sign-in modal using MicroModal
+	if (typeof MicroModal !== "undefined") {
+		MicroModal.show("modal-signin");
 	}
 }
 
@@ -273,6 +339,140 @@ async function handleSignOut() {
 		}
 	}
 }
+
+// ========== Sign-In Modal Functions ==========
+
+let isSignUpMode = false;
+
+function toggleSignupMode() {
+	isSignUpMode = !isSignUpMode;
+	const modalTitle = document.getElementById("modal-signin-title");
+	const submitButton = document.getElementById("signin-submit-text");
+	const toggleText = document.querySelector(".signin-toggle");
+
+	if (isSignUpMode) {
+		modalTitle.textContent = "Sign Up";
+		submitButton.textContent = "Sign Up";
+		toggleText.innerHTML = '<span>Already have an account? </span><button type="button" class="signin-toggle-btn" onclick="toggleSignupMode()">Sign in</button>';
+	} else {
+		modalTitle.textContent = "Sign In";
+		submitButton.textContent = "Sign In";
+		toggleText.innerHTML = '<span>Don\'t have an account? </span><button type="button" class="signin-toggle-btn" onclick="toggleSignupMode()">Sign up</button>';
+	}
+
+	// Clear form and errors when toggling
+	document.getElementById("signin-form").reset();
+	hideSignInError();
+}
+
+function showSignInError(message) {
+	const errorDiv = document.getElementById("signin-error");
+	if (errorDiv) {
+		errorDiv.textContent = message;
+		errorDiv.style.display = "block";
+	}
+}
+
+function hideSignInError() {
+	const errorDiv = document.getElementById("signin-error");
+	if (errorDiv) {
+		errorDiv.style.display = "none";
+		errorDiv.textContent = "";
+	}
+}
+
+function setSignInLoading(loading) {
+	const submitButton = document.getElementById("signin-submit");
+	const submitText = document.getElementById("signin-submit-text");
+	const submitLoader = document.getElementById("signin-submit-loader");
+
+	if (submitButton) {
+		submitButton.disabled = loading;
+	}
+	if (submitText) {
+		submitText.style.display = loading ? "none" : "inline";
+	}
+	if (submitLoader) {
+		submitLoader.style.display = loading ? "inline" : "none";
+	}
+}
+
+async function executeRecaptcha() {
+	return new Promise((resolve) => {
+		if (typeof grecaptcha !== "undefined") {
+			grecaptcha.ready(() => {
+				grecaptcha
+					.execute("6LdVslAsAAAAAAwyU1wyjAxIG_K187E82ID2C7Re", { action: "submit" })
+					.then((token) => {
+						resolve(token);
+					})
+					.catch(() => {
+						resolve(null);
+					});
+			});
+		} else {
+			// Fallback if grecaptcha is not loaded
+			console.warn("reCAPTCHA not loaded");
+			resolve(null);
+		}
+	});
+}
+
+async function handleSignInFormSubmit(event) {
+	event.preventDefault();
+	hideSignInError();
+	setSignInLoading(true);
+
+	const email = document.getElementById("signin-email").value;
+	const password = document.getElementById("signin-password").value;
+
+	try {
+		// Execute reCAPTCHA
+		const recaptchaToken = await executeRecaptcha();
+
+		let result;
+		if (isSignUpMode) {
+			result = await signUpWithEmail(email, password, recaptchaToken);
+		} else {
+			result = await signInWithEmail(email, password, recaptchaToken);
+		}
+
+		if (result.success) {
+			// Close modal on success
+			if (typeof MicroModal !== "undefined") {
+				MicroModal.close("modal-signin");
+			}
+			// Reset form and mode
+			document.getElementById("signin-form").reset();
+			if (isSignUpMode) {
+				isSignUpMode = false;
+				toggleSignupMode(); // Reset to sign-in mode
+			}
+		} else {
+			showSignInError(result.error);
+		}
+	} catch (error) {
+		showSignInError(error.message || "An unexpected error occurred");
+	} finally {
+		setSignInLoading(false);
+	}
+}
+
+// Initialize sign-in form when DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+	const signInForm = document.getElementById("signin-form");
+	if (signInForm) {
+		signInForm.addEventListener("submit", handleSignInFormSubmit);
+	}
+
+	// Initialize MicroModal
+	if (typeof MicroModal !== "undefined") {
+		MicroModal.init({
+			disableScroll: true,
+			awaitCloseAnimation: true,
+		});
+	}
+});
 
 // ========== Artifact Conversion ==========
 

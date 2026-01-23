@@ -984,6 +984,105 @@ body {
   }
 }
 
+/* Micromodal animations */
+.micromodal-slide {
+  display: none;
+}
+
+.micromodal-slide.is-open {
+  display: block;
+}
+
+.micromodal-slide[aria-hidden="false"] .modal__overlay {
+  animation: fadeIn 0.3s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.micromodal-slide[aria-hidden="false"] .modal__container {
+  animation: slideUp 0.3s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.micromodal-slide[aria-hidden="true"] .modal__overlay {
+  animation: fadeOut 0.3s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.micromodal-slide[aria-hidden="true"] .modal__container {
+  animation: slideDown 0.3s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+/* Sign-in modal specific styles */
+.signin-error {
+  background: #fee;
+  color: var(--danger);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  border: 1px solid var(--danger);
+}
+
+.signin-toggle {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--font-color);
+}
+
+.signin-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--brand);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+.signin-toggle-btn:hover {
+  color: var(--brand-strong);
+  transform: none;
+}
+
+.signin-loader {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#signin-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#signin-submit:disabled:hover {
+  background: var(--brand);
+  transform: none;
+}
+
 /* Project assignment dropdown */
 .project-assignment {
   margin: 10px 0;
