@@ -892,15 +892,44 @@ async function syncLocalDataToFirebase(userId) {
 	const syncStatus = document.getElementById("syncStatus");
 
 	try {
+		// Verify Firebase is initialized
+		if (!db) {
+			const errorMsg = "Firebase not initialized. Please refresh the page.";
+			console.error(errorMsg);
+			if (syncStatus) {
+				syncStatus.textContent = errorMsg;
+				syncStatus.style.display = "block";
+			}
+			return { success: false, error: errorMsg };
+		}
+
+		if (!currentUser) {
+			const errorMsg = "Not authenticated. Please sign in again.";
+			console.error(errorMsg);
+			if (syncStatus) {
+				syncStatus.textContent = errorMsg;
+				syncStatus.style.display = "block";
+			}
+			return { success: false, error: errorMsg };
+		}
+
 		if (syncStatus) {
 			syncStatus.textContent = "Syncing data...";
 			syncStatus.style.display = "block";
 		}
 
+		console.log(
+			`Starting sync for user ${userId}. Firebase initialized: ${!!db}, User authenticated: ${!!currentUser}`,
+		);
+
 		const localBookmarks =
 			typeof getBookmarks === "function" ? getBookmarks() : [];
 		const localProjects =
 			typeof getProjects === "function" ? getProjects() : [];
+
+		console.log(
+			`Found ${localBookmarks.length} local bookmarks and ${localProjects.length} local projects to sync`,
+		);
 
 		// Get existing artifacts from Firebase
 		const existingResult = await getUserArtifacts(userId);
@@ -925,24 +954,44 @@ async function syncLocalDataToFirebase(userId) {
 
 		// Sync bookmarks that don't already exist
 		let syncedBookmarks = 0;
+		const bookmarkErrors = [];
 		for (const bookmark of localBookmarks) {
 			if (!existingBookmarkIds.has(bookmark.id)) {
 				const artifact = bookmarkToArtifact(bookmark, userId);
 				const result = await saveArtifactToFirestore(artifact);
 				if (result.success) {
 					syncedBookmarks++;
+				} else {
+					bookmarkErrors.push({
+						title: bookmark.title || "Untitled",
+						error: result.error,
+					});
+					console.error(
+						`Failed to sync bookmark "${bookmark.title}":`,
+						result.error,
+					);
 				}
 			}
 		}
 
 		// Sync projects that don't already exist
 		let syncedProjects = 0;
+		const projectErrors = [];
 		for (const project of localProjects) {
 			if (!existingProjectIds.has(project.id)) {
 				const artifact = projectToArtifact(project, userId);
 				const result = await saveArtifactToFirestore(artifact);
 				if (result.success) {
 					syncedProjects++;
+				} else {
+					projectErrors.push({
+						name: project.name || "Untitled",
+						error: result.error,
+					});
+					console.error(
+						`Failed to sync project "${project.name}":`,
+						result.error,
+					);
 				}
 			}
 		}
@@ -954,17 +1003,51 @@ async function syncLocalDataToFirebase(userId) {
 		// Local data will be overwritten when we load from Firebase
 
 		if (syncStatus) {
-			syncStatus.textContent = `Synced ${syncedBookmarks} bookmark(s) and ${syncedProjects} project(s)`;
+			let statusMessage = `Synced ${syncedBookmarks} bookmark(s) and ${syncedProjects} project(s)`;
+
+			// Add error information if any syncs failed
+			if (bookmarkErrors.length > 0 || projectErrors.length > 0) {
+				statusMessage += `\n\nFailed to sync: ${bookmarkErrors.length} bookmark(s) and ${projectErrors.length} project(s)`;
+				if (bookmarkErrors.length > 0) {
+					statusMessage += `\nBookmark errors: ${bookmarkErrors[0].error}`;
+					if (bookmarkErrors.length > 1) {
+						statusMessage += ` (and ${bookmarkErrors.length - 1} more)`;
+					}
+				}
+				if (projectErrors.length > 0) {
+					statusMessage += `\nProject errors: ${projectErrors[0].error}`;
+					if (projectErrors.length > 1) {
+						statusMessage += ` (and ${projectErrors.length - 1} more)`;
+					}
+				}
+				statusMessage += `\n\nCheck the browser console for details.`;
+			}
+
+			syncStatus.textContent = statusMessage;
 			setTimeout(() => {
 				syncStatus.style.display = "none";
-			}, 3000);
+			}, bookmarkErrors.length > 0 || projectErrors.length > 0 ? 10000 : 3000);
 		}
 
 		console.log(
 			`Synced ${syncedBookmarks} bookmarks and ${syncedProjects} projects`,
 		);
 
-		return { success: true, syncedBookmarks, syncedProjects };
+		if (bookmarkErrors.length > 0 || projectErrors.length > 0) {
+			console.warn(
+				`Failed to sync ${bookmarkErrors.length} bookmarks and ${projectErrors.length} projects`,
+			);
+			console.warn("Bookmark errors:", bookmarkErrors);
+			console.warn("Project errors:", projectErrors);
+		}
+
+		return {
+			success: true,
+			syncedBookmarks,
+			syncedProjects,
+			bookmarkErrors,
+			projectErrors,
+		};
 	} catch (error) {
 		console.error("Sync error:", error);
 		if (syncStatus) {
