@@ -1259,9 +1259,10 @@ function scoreWikipediaResult(result, originalTitle, searchTerm, allKeywords) {
 	const resultTitle = result.title.toLowerCase();
 	const resultDesc = result.description.toLowerCase();
 	const originalTitleLower = originalTitle.toLowerCase();
+	const searchTermLower = searchTerm.toLowerCase();
 	
 	// Higher score if Wikipedia title contains the search term
-	if (resultTitle.includes(searchTerm.toLowerCase())) {
+	if (resultTitle.includes(searchTermLower)) {
 		score += 5;
 	}
 	
@@ -1276,7 +1277,7 @@ function scoreWikipediaResult(result, originalTitle, searchTerm, allKeywords) {
 	});
 	
 	// Bonus if it's an exact match or close match to search term
-	if (resultTitle === searchTerm.toLowerCase()) {
+	if (resultTitle === searchTermLower) {
 		score += 10;
 	}
 	
@@ -1341,7 +1342,7 @@ async function fetchWikipediaSourceLinks(entry) {
 		}
 		
 		// Sort by score and return top 5 (at minimum 1 if any exist)
-		const sortedLinks = Array.from(allResults.values())
+		const links = Array.from(allResults.values())
 			.sort((a, b) => b.score - a.score)
 			.slice(0, 5)
 			.map(item => ({
@@ -1349,9 +1350,6 @@ async function fetchWikipediaSourceLinks(entry) {
 				title: item.title,
 				score: item.score
 			}));
-		
-		// Ensure at least 1 link if we have any results
-		const links = sortedLinks.length > 0 ? sortedLinks : [];
 		
 		return { 
 			links, 
