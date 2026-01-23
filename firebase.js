@@ -178,6 +178,8 @@ function handleAuthStateChange(user) {
 		checkAndSyncLocalData(user);
 	} else {
 		console.log("User signed out");
+		// Stop real-time sync when user signs out
+		stopRealtimeSync();
 	}
 }
 
@@ -512,7 +514,9 @@ function bookmarkToArtifact(bookmark, userId) {
 		createdAt: bookmark.createdAt
 			? new Date(bookmark.createdAt).toISOString()
 			: now,
-		updatedAt: now,
+		updatedAt: bookmark.updatedAt
+			? new Date(bookmark.updatedAt).toISOString()
+			: now,
 
 		refs: {
 			assets: [],
@@ -591,7 +595,9 @@ function projectToArtifact(project, userId) {
 		createdAt: project.createdAt
 			? new Date(project.createdAt).toISOString()
 			: now,
-		updatedAt: now,
+		updatedAt: project.updatedAt
+			? new Date(project.updatedAt).toISOString()
+			: now,
 
 		refs: {
 			assets: [],
@@ -654,6 +660,9 @@ function artifactToBookmark(artifact) {
 		createdAt: artifact.createdAt
 			? new Date(artifact.createdAt).getTime()
 			: Date.now(),
+		updatedAt: artifact.updatedAt
+			? new Date(artifact.updatedAt).getTime()
+			: Date.now(),
 		note: researchLoader.note || "",
 		aiSummary: researchLoader.aiSummary || "",
 		aiAbstract: researchLoader.aiAbstract || "",
@@ -681,6 +690,9 @@ function artifactToProject(artifact) {
 		gptInstruction: researchLoader.gptInstruction || "",
 		createdAt: artifact.createdAt
 			? new Date(artifact.createdAt).getTime()
+			: Date.now(),
+		updatedAt: artifact.updatedAt
+			? new Date(artifact.updatedAt).getTime()
 			: Date.now(),
 		paperIds: meta.paperIds || [],
 	};
@@ -857,6 +869,134 @@ async function loadApiTokensFromFirebase(userId) {
 	}
 }
 
+// ========== Merge Operations (Local-First Conflict Resolution) ==========
+
+/**
+ * Merges local and remote bookmarks using timestamp-based conflict resolution.
+ * Always keeps the most recent version based on updatedAt timestamp.
+ * @param {Array} localBookmarks - Bookmarks from localStorage
+ * @param {Array} remoteArtifacts - Artifacts from Firestore
+ * @returns {Array} Merged bookmarks with most recent versions
+ */
+function mergeBookmarks(localBookmarks, remoteArtifacts) {
+	// Convert remote artifacts to bookmarks
+	const remoteBookmarks = remoteArtifacts
+		.filter((a) => a.type === "bookmark")
+		.map(artifactToBookmark)
+		.filter(Boolean);
+
+	// Create maps for efficient lookup
+	const localMap = new Map();
+	const remoteMap = new Map();
+
+	// Add local bookmarks to map
+	localBookmarks.forEach((bookmark) => {
+		localMap.set(bookmark.id, bookmark);
+	});
+
+	// Add remote bookmarks to map
+	remoteBookmarks.forEach((bookmark) => {
+		remoteMap.set(bookmark.id, bookmark);
+	});
+
+	// Merge: for each unique ID, keep the most recent version
+	const mergedMap = new Map();
+
+	// First, add all local bookmarks
+	localBookmarks.forEach((local) => {
+		const remote = remoteMap.get(local.id);
+
+		if (!remote) {
+			// Only exists locally - keep it
+			mergedMap.set(local.id, local);
+		} else {
+			// Exists in both - compare timestamps and keep most recent
+			const localTime = local.updatedAt || local.createdAt || 0;
+			const remoteTime = remote.updatedAt || remote.createdAt || 0;
+
+			if (localTime >= remoteTime) {
+				// Local is newer or same age - keep local
+				mergedMap.set(local.id, local);
+			} else {
+				// Remote is newer - keep remote
+				mergedMap.set(local.id, remote);
+			}
+		}
+	});
+
+	// Add remote bookmarks that don't exist locally
+	remoteBookmarks.forEach((remote) => {
+		if (!localMap.has(remote.id)) {
+			mergedMap.set(remote.id, remote);
+		}
+	});
+
+	return Array.from(mergedMap.values());
+}
+
+/**
+ * Merges local and remote projects using timestamp-based conflict resolution.
+ * Always keeps the most recent version based on updatedAt timestamp.
+ * @param {Array} localProjects - Projects from localStorage
+ * @param {Array} remoteArtifacts - Artifacts from Firestore
+ * @returns {Array} Merged projects with most recent versions
+ */
+function mergeProjects(localProjects, remoteArtifacts) {
+	// Convert remote artifacts to projects
+	const remoteProjects = remoteArtifacts
+		.filter((a) => a.type === "project")
+		.map(artifactToProject)
+		.filter(Boolean);
+
+	// Create maps for efficient lookup
+	const localMap = new Map();
+	const remoteMap = new Map();
+
+	// Add local projects to map
+	localProjects.forEach((project) => {
+		localMap.set(project.id, project);
+	});
+
+	// Add remote projects to map
+	remoteProjects.forEach((project) => {
+		remoteMap.set(project.id, project);
+	});
+
+	// Merge: for each unique ID, keep the most recent version
+	const mergedMap = new Map();
+
+	// First, add all local projects
+	localProjects.forEach((local) => {
+		const remote = remoteMap.get(local.id);
+
+		if (!remote) {
+			// Only exists locally - keep it
+			mergedMap.set(local.id, local);
+		} else {
+			// Exists in both - compare timestamps and keep most recent
+			const localTime = local.updatedAt || local.createdAt || 0;
+			const remoteTime = remote.updatedAt || remote.createdAt || 0;
+
+			if (localTime >= remoteTime) {
+				// Local is newer or same age - keep local
+				mergedMap.set(local.id, local);
+			} else {
+				// Remote is newer - keep remote
+				mergedMap.set(local.id, remote);
+			}
+		}
+	});
+
+	// Add remote projects that don't exist locally
+	remoteProjects.forEach((remote) => {
+		if (!localMap.has(remote.id)) {
+			mergedMap.set(remote.id, remote);
+		}
+	});
+
+	return Array.from(mergedMap.values());
+}
+
 // ========== Sync Operations ==========
 
 async function checkAndSyncLocalData(user) {
@@ -886,6 +1026,9 @@ async function checkAndSyncLocalData(user) {
 	// Load data from Firebase (including encrypted API tokens)
 	await loadDataFromFirebase(user.uid);
 	await loadApiTokensFromFirebase(user.uid);
+
+	// Start real-time sync to keep data in sync going forward
+	startRealtimeSync(user.uid);
 }
 
 async function syncLocalDataToFirebase(userId) {
@@ -1068,30 +1211,21 @@ async function loadDataFromFirebase(userId) {
 
 		const artifacts = result.artifacts;
 
-		// Convert artifacts back to bookmarks and projects
-		const bookmarks = [];
-		const projects = [];
+		// Get current local data for merging
+		const localBookmarks =
+			typeof getBookmarks === "function" ? getBookmarks() : [];
+		const localProjects = typeof getProjects === "function" ? getProjects() : [];
 
-		artifacts.forEach((artifact) => {
-			if (artifact.type === "bookmark") {
-				const bookmark = artifactToBookmark(artifact);
-				if (bookmark) {
-					bookmarks.push(bookmark);
-				}
-			} else if (artifact.type === "project") {
-				const project = artifactToProject(artifact);
-				if (project) {
-					projects.push(project);
-				}
-			}
-		});
+		// Merge remote data with local data (most recent wins)
+		const mergedBookmarks = mergeBookmarks(localBookmarks, artifacts);
+		const mergedProjects = mergeProjects(localProjects, artifacts);
 
 		// Update local storage with merged data
 		if (typeof saveBookmarks === "function") {
-			saveBookmarks(bookmarks);
+			saveBookmarks(mergedBookmarks);
 		}
 		if (typeof saveProjects === "function") {
-			saveProjects(projects);
+			saveProjects(mergedProjects);
 		}
 
 		// Re-render the UI
@@ -1100,7 +1234,7 @@ async function loadDataFromFirebase(userId) {
 		}
 
 		console.log(
-			`Loaded ${bookmarks.length} bookmarks and ${projects.length} projects from Firebase`,
+			`Loaded and merged ${mergedBookmarks.length} bookmarks and ${mergedProjects.length} projects from Firebase`,
 		);
 	} catch (error) {
 		console.error("Error loading data from Firebase:", error);
@@ -1131,26 +1265,28 @@ function startRealtimeSync(userId) {
 		.where("owner", "==", userId)
 		.onSnapshot(
 			(snapshot) => {
-				const bookmarks = [];
-				const projects = [];
+				const remoteArtifacts = [];
 
 				snapshot.forEach((doc) => {
-					const artifact = doc.data();
-					if (artifact.type === "bookmark") {
-						const bookmark = artifactToBookmark(artifact);
-						if (bookmark) bookmarks.push(bookmark);
-					} else if (artifact.type === "project") {
-						const project = artifactToProject(artifact);
-						if (project) projects.push(project);
-					}
+					remoteArtifacts.push(doc.data());
 				});
 
-				// Update local storage
+				// Get current local data for merging
+				const localBookmarks =
+					typeof getBookmarks === "function" ? getBookmarks() : [];
+				const localProjects =
+					typeof getProjects === "function" ? getProjects() : [];
+
+				// Merge remote data with local data (most recent wins)
+				const mergedBookmarks = mergeBookmarks(localBookmarks, remoteArtifacts);
+				const mergedProjects = mergeProjects(localProjects, remoteArtifacts);
+
+				// Update local storage with merged data
 				if (typeof saveBookmarks === "function") {
-					saveBookmarks(bookmarks);
+					saveBookmarks(mergedBookmarks);
 				}
 				if (typeof saveProjects === "function") {
-					saveProjects(projects);
+					saveProjects(mergedProjects);
 				}
 
 				// Re-render the UI
