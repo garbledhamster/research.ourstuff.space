@@ -123,16 +123,11 @@ function saveBookmarks(data) {
 	localStorage.setItem("researchBookmarks", JSON.stringify(timestampedData));
 }
 
-function getGoogleSettings() {
+// Wikipedia settings (no API key needed)
+function getWikipediaSettings() {
 	return {
-		apiKey: localStorage.getItem("googleApiKey") || "",
-		cx: localStorage.getItem("googleCx") || "",
+		enabled: true, // Always enabled as Wikipedia API doesn't require keys
 	};
-}
-
-function setGoogleSettings(apiKey, cx) {
-	localStorage.setItem("googleApiKey", apiKey || "");
-	localStorage.setItem("googleCx", cx || "");
 }
 
 function getProjects() {
@@ -338,45 +333,6 @@ document.addEventListener("click", (event) => {
 function toggleAdvanced() {
 	const panel = document.getElementById("advancedPanel");
 	panel.style.display = panel.style.display === "block" ? "none" : "block";
-}
-
-function initGoogleSettings() {
-	const { apiKey, cx } = getGoogleSettings();
-	const keyInput = document.getElementById("googleApiKey");
-	const cxInput = document.getElementById("googleCx");
-
-	if (keyInput) keyInput.value = apiKey;
-	if (cxInput) cxInput.value = cx;
-
-	updateGoogleSettingsStatus();
-}
-
-function updateGoogleSettingsStatus(message) {
-	const status = document.getElementById("googleSettingsStatus");
-	if (!status) return;
-
-	if (message) {
-		status.innerText = message;
-		return;
-	}
-
-	const { apiKey, cx } = getGoogleSettings();
-	if (!apiKey || !cx) {
-		status.innerText =
-			"Add your API key + Search Engine ID to enable source lookup for bookmarks.";
-		return;
-	}
-
-	status.innerText =
-		"Google settings saved. Source lookup is enabled for bookmarks.";
-}
-
-function saveGoogleSettings() {
-	const apiKey = document.getElementById("googleApiKey")?.value.trim() || "";
-	const cx = document.getElementById("googleCx")?.value.trim() || "";
-
-	setGoogleSettings(apiKey, cx);
-	updateGoogleSettingsStatus("Saved Google settings locally.");
 }
 
 // ---------- OPENAI SETTINGS ----------
@@ -1203,167 +1159,206 @@ function escapeHtml(value) {
 		.replace(/>/g, "&gt;");
 }
 
-function normalizeGoogleLink(link) {
-	return String(link || "")
-		.replace(/#.*$/, "")
-		.trim();
+// Wikipedia API integration functions
+
+/**
+ * Extract keywords from title, authors, and other metadata
+ * @param {string} title - Article title
+ * @param {string} authors - Authors string
+ * @returns {Array<string>} Array of search terms
+ */
+function extractWikipediaKeywords(title, authors) {
+	const keywords = new Set();
+	
+	// Common stop words to filter out
+	const stopWords = new Set([
+		'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
+		'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
+		'to', 'was', 'will', 'with', 'this', 'these', 'those', 'their',
+		'there', 'can', 'could', 'should', 'would', 'may', 'might'
+	]);
+	
+	// Extract meaningful words from title
+	if (title) {
+		const titleWords = title
+			.toLowerCase()
+			.replace(/[^\w\s-]/g, ' ')
+			.split(/\s+/)
+			.filter(word => word.length > 3 && !stopWords.has(word));
+		
+		titleWords.forEach(word => keywords.add(word));
+	}
+	
+	// Extract author last names
+	if (authors) {
+		const authorList = authors.split(',');
+		authorList.forEach(author => {
+			const trimmed = author.trim();
+			// Get last name (usually last word)
+			const words = trimmed.split(/\s+/);
+			if (words.length > 0) {
+				const lastName = words[words.length - 1];
+				if (lastName.length > 2) {
+					keywords.add(lastName.toLowerCase());
+				}
+			}
+		});
+	}
+	
+	return Array.from(keywords);
 }
 
-function extractHostname(link) {
+/**
+ * Search Wikipedia for a single term
+ * @param {string} searchTerm - Term to search for
+ * @returns {Promise<Array>} Array of Wikipedia search results
+ */
+async function searchWikipedia(searchTerm) {
+	const url = new URL('https://en.wikipedia.org/w/api.php');
+	url.searchParams.set('action', 'opensearch');
+	url.searchParams.set('search', searchTerm);
+	url.searchParams.set('limit', '5');
+	url.searchParams.set('format', 'json');
+	url.searchParams.set('origin', '*');
+	
 	try {
-		return new URL(link).hostname.replace(/^www\./, "");
-	} catch (_error) {
-		return "";
+		const res = await fetch(url.toString());
+		if (!res.ok) {
+			return [];
+		}
+		
+		const data = await res.json();
+		// OpenSearch API returns: [query, [titles], [descriptions], [urls]]
+		const titles = data[1] || [];
+		const descriptions = data[2] || [];
+		const urls = data[3] || [];
+		
+		return titles.map((title, index) => ({
+			title: title,
+			description: descriptions[index] || '',
+			url: urls[index] || '',
+			searchTerm: searchTerm
+		}));
+	} catch (error) {
+		console.error('Wikipedia search error:', error);
+		return [];
 	}
 }
 
-const PUBLIC_DOMAIN_SITES = [
-	"archive.org",
-	"gutenberg.org",
-	"hathitrust.org",
-	"loc.gov",
-	"openlibrary.org",
-	"standardebooks.org",
-	"wikisource.org",
-];
-
-function isPublicDomainHost(hostname) {
-	if (!hostname) return false;
-	return PUBLIC_DOMAIN_SITES.some(
-		(site) => hostname === site || hostname.endsWith(`.${site}`),
-	);
-}
-
-function normalizeDoiValue(doi) {
-	if (!doi) return "";
-	return String(doi)
-		.replace(/^https?:\/\/doi\.org\//i, "")
-		.trim();
-}
-
-function buildGoogleQueries(title, firstAuthor, doi) {
-	const baseParts = [];
-	if (title) baseParts.push(`"${title}"`);
-	if (firstAuthor) baseParts.push(`"${firstAuthor}"`);
-
-	const normalizedDoi = normalizeDoiValue(doi);
-	const baseQuery = baseParts.join(" ").trim();
-	const publicDomainSitesQuery = PUBLIC_DOMAIN_SITES.map(
-		(site) => `site:${site}`,
-	).join(" OR ");
-	const publicDomainQuery = baseQuery
-		? `${baseQuery} (${publicDomainSitesQuery})`
-		: "";
-
-	return [
-		{
-			type: "primary",
-			q: baseQuery,
-			exactTerms: title || "",
-		},
-		{
-			type: "citations",
-			q: baseQuery,
-			orTerms: "cited references bibliography",
-		},
-		{
-			type: "public_domain",
-			q: publicDomainQuery,
-			exactTerms: title || "",
-		},
-		{
-			type: "doi",
-			q: normalizedDoi,
-			exactTerms: normalizedDoi,
-		},
-	].filter((query) => query.q);
-}
-
-function scoreGoogleItem(item, title) {
-	const titleLower = String(title || "").toLowerCase();
-	const itemTitle = String(item?.title || "").toLowerCase();
-	const snippet = String(item?.snippet || "").toLowerCase();
-	const link = String(item?.link || "").toLowerCase();
-	const hostname = extractHostname(link).toLowerCase();
-
+/**
+ * Score Wikipedia result based on relevance to the original article
+ * @param {Object} result - Wikipedia search result
+ * @param {string} originalTitle - Original article title
+ * @param {string} searchTerm - The search term used
+ * @param {Array<string>} allKeywords - All extracted keywords
+ * @returns {number} Relevance score
+ */
+function scoreWikipediaResult(result, originalTitle, searchTerm, allKeywords) {
 	let score = 0;
-	if (titleLower && itemTitle.includes(titleLower)) score += 4;
-	if (titleLower && snippet.includes(titleLower)) score += 2;
-	if (isPublicDomainHost(hostname)) score += 3;
-	if (snippet.includes("public domain") || snippet.includes("full text")) {
-		score += 1;
+	
+	const resultTitle = result.title.toLowerCase();
+	const resultDesc = result.description.toLowerCase();
+	const originalTitleLower = originalTitle.toLowerCase();
+	
+	// Higher score if Wikipedia title contains the search term
+	if (resultTitle.includes(searchTerm.toLowerCase())) {
+		score += 5;
 	}
-	if (link.includes(".pdf")) score -= 1;
+	
+	// Score based on how many keywords appear in the Wikipedia title/description
+	allKeywords.forEach(keyword => {
+		if (resultTitle.includes(keyword)) {
+			score += 3;
+		}
+		if (resultDesc.includes(keyword)) {
+			score += 1;
+		}
+	});
+	
+	// Bonus if it's an exact match or close match to search term
+	if (resultTitle === searchTerm.toLowerCase()) {
+		score += 10;
+	}
+	
+	// Check for common academic/research terms in description
+	const academicTerms = ['theory', 'model', 'framework', 'concept', 'principle', 'research'];
+	academicTerms.forEach(term => {
+		if (resultDesc.includes(term)) {
+			score += 1;
+		}
+	});
+	
 	return score;
 }
 
-async function fetchGoogleItems({ apiKey, cx, query }) {
-	const url = new URL("https://www.googleapis.com/customsearch/v1");
-	url.searchParams.set("key", apiKey);
-	url.searchParams.set("cx", cx);
-	url.searchParams.set("q", query.q);
-	url.searchParams.set("num", "10");
-
-	if (query.exactTerms) url.searchParams.set("exactTerms", query.exactTerms);
-	if (query.orTerms) url.searchParams.set("orTerms", query.orTerms);
-
-	const res = await fetch(url.toString());
-	if (!res.ok) {
-		return { items: [], status: `error_${res.status}` };
-	}
-
-	const data = await res.json();
-	return { items: data?.items || [], status: "ok" };
-}
-
-async function fetchGoogleSourceLinks(entry) {
-	const { apiKey, cx } = getGoogleSettings();
-	if (!apiKey || !cx) {
-		return { links: [], status: "missing_settings" };
-	}
-
+/**
+ * Fetch Wikipedia links for an entry
+ * @param {Object} entry - Entry object with title, authors, etc.
+ * @returns {Promise<Object>} Object with links array and status string
+ */
+async function fetchWikipediaSourceLinks(entry) {
 	const title = entry.title || "";
-	const firstAuthor = (entry.authors || "").split(",")[0]?.trim();
-	const queries = buildGoogleQueries(title, firstAuthor, entry.doi);
-
-	if (queries.length === 0) {
+	const authors = entry.authors || "";
+	
+	if (!title) {
 		return { links: [], status: "missing_query" };
 	}
-
+	
 	try {
-		const aggregated = new Map();
-		let status = "ok";
-
-		for (const query of queries) {
-			const result = await fetchGoogleItems({ apiKey, cx, query });
-			if (result.status !== "ok") status = result.status;
-
-			result.items.forEach((item) => {
-				const link = normalizeGoogleLink(item?.link || "");
-				if (!link) return;
-
-				const existing = aggregated.get(link);
-				const score = scoreGoogleItem(item, title);
+		// Extract keywords from title and authors
+		const keywords = extractWikipediaKeywords(title, authors);
+		
+		if (keywords.length === 0) {
+			return { links: [], status: "missing_query" };
+		}
+		
+		// Search Wikipedia for each keyword (prioritize first few keywords)
+		const searchTerms = keywords.slice(0, 5); // Limit to top 5 keywords
+		const allResults = new Map();
+		
+		for (const term of searchTerms) {
+			const results = await searchWikipedia(term);
+			
+			results.forEach(result => {
+				if (!result.url) return;
+				
+				const existing = allResults.get(result.url);
+				const score = scoreWikipediaResult(result, title, term, keywords);
+				
 				const entryData = {
-					url: link,
-					title: item?.title || extractHostname(link) || link,
-					score,
-					source: query.type,
+					url: result.url,
+					title: result.title,
+					description: result.description,
+					score: score,
+					searchTerm: term
 				};
-
+				
+				// Keep the result with the highest score
 				if (!existing || entryData.score > existing.score) {
-					aggregated.set(link, entryData);
+					allResults.set(result.url, entryData);
 				}
 			});
 		}
-
-		const links = Array.from(aggregated.values())
+		
+		// Sort by score and return top 5 (at minimum 1 if any exist)
+		const sortedLinks = Array.from(allResults.values())
 			.sort((a, b) => b.score - a.score)
-			.slice(0, 5);
-
-		return { links, status };
+			.slice(0, 5)
+			.map(item => ({
+				url: item.url,
+				title: item.title,
+				score: item.score
+			}));
+		
+		// Ensure at least 1 link if we have any results
+		const links = sortedLinks.length > 0 ? sortedLinks : [];
+		
+		return { 
+			links, 
+			status: links.length > 0 ? "ok" : "no_results" 
+		};
 	} catch (error) {
-		console.error(error);
+		console.error('Wikipedia fetch error:', error);
 		return { links: [], status: "error_network" };
 	}
 }
@@ -1422,8 +1417,8 @@ async function toggleBookmark(entry, btn) {
 		const pendingEntry = {
 			...entry,
 			createdAt: Date.now(),
-			googleLinks: [],
-			googleLinksStatus: "pending",
+			wikipediaLinks: [],
+			wikipediaLinksStatus: "pending",
 			note: "",
 		};
 		bookmarks.push(pendingEntry);
@@ -1440,13 +1435,13 @@ async function toggleBookmark(entry, btn) {
 	syncBookmarksToFirebase();
 
 	if (!exists) {
-		const { links, status } = await fetchGoogleSourceLinks(entry);
+		const { links, status } = await fetchWikipediaSourceLinks(entry);
 		const updated = getBookmarks().map((b) =>
 			b.id === entry.id
 				? {
 						...b,
-						googleLinks: links,
-						googleLinksStatus: status,
+						wikipediaLinks: links,
+						wikipediaLinksStatus: status,
 					}
 				: b,
 		);
@@ -1476,21 +1471,21 @@ async function refreshBookmarkLinks(bookmarkId) {
 		b.id === bookmarkId
 			? {
 					...b,
-					googleLinks: [],
-					googleLinksStatus: "pending",
+					wikipediaLinks: [],
+					wikipediaLinksStatus: "pending",
 				}
 			: b,
 	);
 	saveBookmarks(pendingBookmarks);
 	renderBookmarkList();
 
-	const { links, status } = await fetchGoogleSourceLinks(entry);
+	const { links, status } = await fetchWikipediaSourceLinks(entry);
 	const updated = getBookmarks().map((b) =>
 		b.id === bookmarkId
 			? {
 					...b,
-					googleLinks: links,
-					googleLinksStatus: status,
+					wikipediaLinks: links,
+					wikipediaLinksStatus: status,
 					updatedAt: Date.now(),
 				}
 			: b,
@@ -1715,36 +1710,22 @@ function createSettingsDrawer() {
 
     <div class="settings-section">
       <div class="settings-section-title">
-        Google Source Finder (Bookmarks)
+        Wikipedia Source Finder (Bookmarks)
         <span class="help-links">
           <a
-            href="https://developers.google.com/custom-search/v1/introduction"
+            href="https://en.wikipedia.org/wiki/Help:Searching"
             target="_blank"
             rel="noopener"
-            title="How to get an API key + set up Programmable Search Engine"
+            title="Learn about Wikipedia search"
           >Help</a>
-          <span class="dot">•</span>
-          <a
-            href="https://support.google.com/programmable-search/answer/12499034?hl=en"
-            target="_blank"
-            rel="noopener"
-            title="How to find your Search Engine ID (cx)"
-          >Find cx</a>
         </span>
       </div>
 
-      <div class="settings-grid">
-        <input
-          id="googleApiKey"
-          type="password"
-          placeholder="Google Custom Search API key (stored locally)"
-        />
-        <input id="googleCx" type="text" placeholder="Search Engine ID (cx) (stored locally)" />
-        <button type="button" onclick="saveGoogleSettings()" style="width: 100%;">Save Google Settings</button>
-      </div>
-
-      <div id="googleSettingsStatus" class="settings-note">
-        Tip: Restrict your API key by HTTP referrer to your GitHub Pages domain.
+      <div class="settings-note">
+        Wikipedia links are automatically fetched for bookmarks. No API key required!
+        <br><br>
+        When you bookmark a paper, relevant Wikipedia articles are found using keywords from the title and authors.
+        This provides contextual background and related concepts for your research.
       </div>
     </div>
 
@@ -2384,28 +2365,30 @@ function createBookmarkListItem(b, options = {}) {
 	details.className = "bookmark-item-details";
 	details.hidden = true;
 
-	const googleLinks = Array.isArray(b.googleLinks)
-		? b.googleLinks
-		: Array.isArray(b.pdfLinks)
-			? b.pdfLinks
-			: [];
-	const googleStatus =
-		b.googleLinksStatus || b.pdfLinksStatus || "missing_settings";
+	const wikipediaLinks = Array.isArray(b.wikipediaLinks)
+		? b.wikipediaLinks
+		: Array.isArray(b.googleLinks) // Fallback for old bookmarks
+			? b.googleLinks
+			: Array.isArray(b.pdfLinks) // Legacy fallback
+				? b.pdfLinks
+				: [];
+	const wikipediaStatus =
+		b.wikipediaLinksStatus || b.googleLinksStatus || b.pdfLinksStatus || "ok";
 	let sourceSection = "";
-	const refreshDisabled = googleStatus === "pending";
+	const refreshDisabled = wikipediaStatus === "pending";
 	const refreshButtonLabel = refreshDisabled
 		? "Refreshing..."
 		: "Refresh links";
 
-	if (googleStatus === "pending") {
-		sourceSection = `<div class="small-note">Finding source links...</div>`;
-	} else if (googleStatus === "missing_settings") {
-		sourceSection = `<div class="small-note">Add your Google API key + cx to find sources.</div>`;
-	} else if (googleStatus === "missing_query") {
-		sourceSection = `<div class="small-note">Missing title or author for source lookup.</div>`;
-	} else if (googleStatus && googleStatus !== "ok") {
-		sourceSection = `<div class="small-note">Could not load source links (${escapeHtml(
-			googleStatus,
+	if (wikipediaStatus === "pending") {
+		sourceSection = `<div class="small-note">Finding Wikipedia links...</div>`;
+	} else if (wikipediaStatus === "missing_query") {
+		sourceSection = `<div class="small-note">Missing title or author for Wikipedia lookup.</div>`;
+	} else if (wikipediaStatus === "no_results") {
+		sourceSection = `<div class="small-note">No Wikipedia articles found for this topic.</div>`;
+	} else if (wikipediaStatus && wikipediaStatus !== "ok") {
+		sourceSection = `<div class="small-note">Could not load Wikipedia links (${escapeHtml(
+			wikipediaStatus,
 		)}).</div>`;
 	}
 
@@ -2461,7 +2444,7 @@ function createBookmarkListItem(b, options = {}) {
 			}
       ${detailDoiText ? `<small>${escapeHtml(detailDoiText)}</small>` : ""}
     </div>
-    ${renderSourcePills(googleLinks)}
+    ${renderSourcePills(wikipediaLinks)}
     <div class="bookmark-source-actions">
       <button
         type="button"
@@ -2789,14 +2772,6 @@ function exportBookmarks() {
 // ---------- INITIALIZATION ----------
 
 function initializeSettings() {
-	// Load Google settings
-	const googleSettings = getGoogleSettings();
-	const googleApiKeyInput = document.getElementById("googleApiKey");
-	const googleCxInput = document.getElementById("googleCx");
-	if (googleApiKeyInput) googleApiKeyInput.value = googleSettings.apiKey || "";
-	if (googleCxInput) googleCxInput.value = googleSettings.cx || "";
-	updateGoogleSettingsStatus();
-
 	// Load OpenAI settings
 	const openaiSettings = getOpenAISettings();
 	const openaiApiKeyInput = document.getElementById("openaiApiKey");

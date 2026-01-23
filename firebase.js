@@ -1,7 +1,7 @@
 // Firebase Configuration and Authentication Module
 // This module handles Firebase initialization, authentication, and Firestore operations
 
-/* global getProjects, getBookmarks, saveBookmarks, saveProjects, renderCurrentView, updateSettingsAccountSection, getGoogleSettings, setGoogleSettings, getOpenAISettings, setOpenAISettings */
+/* global getProjects, getBookmarks, saveBookmarks, saveProjects, renderCurrentView, updateSettingsAccountSection, getOpenAISettings, setOpenAISettings */
 
 // Firebase configuration
 const firebaseConfig = {
@@ -550,8 +550,8 @@ function bookmarkToArtifact(bookmark, userId) {
 				aiSummary: bookmark.aiSummary || "",
 				aiAbstract: bookmark.aiAbstract || "",
 				aiAbstractGenerated: bookmark.aiAbstractGenerated || false,
-				googleLinks: bookmark.googleLinks || [],
-				googleLinksStatus: bookmark.googleLinksStatus || "",
+				wikipediaLinks: bookmark.wikipediaLinks || bookmark.googleLinks || [],
+				wikipediaLinksStatus: bookmark.wikipediaLinksStatus || bookmark.googleLinksStatus || "",
 			},
 		},
 
@@ -667,8 +667,8 @@ function artifactToBookmark(artifact) {
 		aiSummary: researchLoader.aiSummary || "",
 		aiAbstract: researchLoader.aiAbstract || "",
 		aiAbstractGenerated: researchLoader.aiAbstractGenerated || false,
-		googleLinks: researchLoader.googleLinks || [],
-		googleLinksStatus: researchLoader.googleLinksStatus || "",
+		wikipediaLinks: researchLoader.wikipediaLinks || researchLoader.googleLinks || [],
+		wikipediaLinksStatus: researchLoader.wikipediaLinksStatus || researchLoader.googleLinksStatus || "",
 	};
 }
 
@@ -816,15 +816,12 @@ async function syncApiTokensToFirebase(userId) {
 	try {
 		// Gather all API tokens from local storage
 		const settings = {
-			google:
-				typeof getGoogleSettings === "function" ? getGoogleSettings() : {},
 			openai:
 				typeof getOpenAISettings === "function" ? getOpenAISettings() : {},
 		};
 
 		// Only sync if there are actual tokens to save
 		const hasTokens =
-			(settings.google.apiKey && settings.google.apiKey.length > 0) ||
 			(settings.openai.apiKey && settings.openai.apiKey.length > 0);
 
 		if (!hasTokens) {
@@ -851,11 +848,6 @@ async function loadApiTokensFromFirebase(userId) {
 		}
 
 		const settings = result.settings;
-
-		// Apply Google settings if present
-		if (settings.google && typeof setGoogleSettings === "function") {
-			setGoogleSettings(settings.google.apiKey || "", settings.google.cx || "");
-		}
 
 		// Apply OpenAI settings if present
 		if (settings.openai && typeof setOpenAISettings === "function") {
